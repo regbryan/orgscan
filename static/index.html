@@ -1,1 +1,59 @@
-<h1>OrgScan loading...</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OrgScan</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <h1>OrgScan</h1>
+  <div class="header-right">
+    <select id="orgSelect" class="org-select" onchange="onOrgChange(event)">
+      <option>Loading orgs…</option>
+    </select>
+    <button class="btn btn-secondary" onclick="connectOrg()">+ Connect Org</button>
+    <button class="btn btn-primary" onclick="runScan()">Run Scan</button>
+    <button class="btn btn-secondary" onclick="exportPdf()">Export PDF</button>
+  </div>
+</header>
+
+<div class="summary-cards">
+  <div class="card critical">
+    <div class="num" id="countCritical">—</div>
+    <div class="label">Critical</div>
+  </div>
+  <div class="card warning">
+    <div class="num" id="countWarning">—</div>
+    <div class="label">Warnings</div>
+  </div>
+  <div class="card info-card">
+    <div class="num" id="countInfo">—</div>
+    <div class="label">Informational</div>
+  </div>
+  <div class="card score">
+    <div class="num" id="scoreNum">—</div>
+    <div class="label">Health Score / 100</div>
+  </div>
+</div>
+
+<div class="main-layout">
+  <nav class="sidebar" id="tabs">
+    <!-- Rendered by JS -->
+  </nav>
+  <main class="content">
+    <h2 id="tabTitle">Select an org and run a scan</h2>
+    <div id="findingsContainer">
+      <div class="empty-state">
+        <div style="font-size:48px">🔍</div>
+        <p>Select an org from the dropdown and click <strong>Run Scan</strong> to get started.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
