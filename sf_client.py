@@ -1,6 +1,17 @@
 import json
+import re
 import requests
 from simple_salesforce import Salesforce
+
+API_VERSION = "59.0"
+_SAFE_DEV_NAME = re.compile(r'^[A-Za-z][A-Za-z0-9_]*$')
+
+
+def _validate_dev_name(name: str) -> str:
+    """Raise ValueError if name is not a valid Salesforce DeveloperName."""
+    if not _SAFE_DEV_NAME.match(name):
+        raise ValueError(f"Invalid DeveloperName: {name!r}")
+    return name
 
 
 class SalesforceClient:
@@ -11,7 +22,7 @@ class SalesforceClient:
         self._sf = Salesforce(
             instance_url=org["instance_url"],
             session_id=org["access_token"],
-            version="59.0",
+            version=API_VERSION,
         )
 
     def query(self, soql: str) -> list[dict]:
@@ -25,7 +36,9 @@ class SalesforceClient:
         return result.get("records", [])
 
     def get_flow_xml(self, flow_api_name: str) -> str:
-        """Retrieve the full flow definition metadata for a flow by its DeveloperName."""
+        """Retrieve the full flow definition metadata for a flow by its DeveloperName.
+        Returns a JSON string (simple-salesforce deserializes the Metadata field to a dict)."""
+        _validate_dev_name(flow_api_name)
         records = self.tooling_query(
             f"SELECT Metadata FROM FlowDefinition WHERE DeveloperName = '{flow_api_name}'"
         )
@@ -37,6 +50,7 @@ class SalesforceClient:
 
     def write_flow_description(self, flow_api_name: str, description: str) -> None:
         """Write a description back to a Salesforce flow via Tooling API PATCH."""
+        _validate_dev_name(flow_api_name)
         records = self.tooling_query(
             f"SELECT Id FROM FlowDefinition WHERE DeveloperName = '{flow_api_name}'"
         )
@@ -47,7 +61,7 @@ class SalesforceClient:
 
     def tooling_update(self, sobject: str, record_id: str, data: dict) -> None:
         """PATCH a Tooling API record."""
-        url = f"{self._org['instance_url']}/services/data/v59.0/tooling/sobjects/{sobject}/{record_id}"
+        url = f"{self._org['instance_url']}/services/data/v{API_VERSION}/tooling/sobjects/{sobject}/{record_id}"
         headers = {
             "Authorization": f"Bearer {self._org['access_token']}",
             "Content-Type": "application/json",
