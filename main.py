@@ -19,6 +19,7 @@ from checks.flows import check_flows
 from checks.fields import check_unused_fields
 from checks.permissions import check_excessive_permissions
 from checks.validation_rules import check_validation_rules
+from checks.activity import get_activity_findings, get_activity_log
 from score import compute_score
 from sf_client import SalesforceClient
 
@@ -94,6 +95,7 @@ def scan(body: ScanRequest):
         check_unused_fields,
         check_excessive_permissions,
         check_validation_rules,
+        get_activity_findings,
     ]
     for fn in check_fns:
         try:
@@ -116,6 +118,25 @@ def scan(body: ScanRequest):
 def get_findings():
     findings = _active_findings or []
     return {"findings": [vars(f) for f in findings], "score": _active_score}
+
+
+@app.get("/activity")
+def get_activity(days: int = 30):
+    if not _active_org:
+        raise HTTPException(status_code=400, detail="No org connected")
+    client = SalesforceClient(_active_org)
+    events = get_activity_log(client, days=days)
+    return {"events": [
+        {
+            "event_type": e.event_type,
+            "user": e.user,
+            "action": e.action,
+            "timestamp": e.timestamp,
+            "ip_address": e.ip_address,
+            "status": e.status,
+        }
+        for e in events
+    ]}
 
 
 # --- Flow AI Describe ---

@@ -19,7 +19,7 @@
     findings: [],
     score: null,
     activeView: 'dashboard',
-    activityLog: [],
+    activityLog: null,
     error: null,
   };
 
@@ -76,7 +76,7 @@
   function navigate(view) {
     state.activeView = view;
     state.error = null;
-    if (view === 'activity') { loadActivity(); return; }
+    if (view === 'activity') { state.activityLog = null; }
     render();
   }
 
@@ -330,31 +330,48 @@
   // ACTIVITY LOG
   // ================================================================
   function renderActivity() {
-    const log = state.activityLog;
-    const rows = log.length === 0
-      ? '<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--text-muted)">No activity recorded yet.</td></tr>'
-      : log.map(e => {
-          const st = (e.status || '').toLowerCase();
-          const scls = st === 'success' ? 'success' : (st === 'error' ? 'error' : 'pending');
-          return '<tr>' +
-            '<td class="cell-title">' + esc(e.user || e.username || '&mdash;') + '</td>' +
-            '<td>' + esc(e.action || '&mdash;') + '</td>' +
-            '<td class="muted">' + esc(e.date || e.timestamp || '&mdash;') + '</td>' +
-            '<td class="muted">' + esc(e.ip || e.ip_address || '&mdash;') + '</td>' +
-            '<td><span class="status-badge ' + scls + '">' + esc(e.status || 'OK') + '</span></td>' +
-            '</tr>';
-        }).join('');
+    if (!state.activityLog) {
+      // trigger load
+      fetch('/activity')
+        .then(r => r.json())
+        .then(data => {
+          state.activityLog = data.events || [];
+          render();
+        })
+        .catch(() => {
+          state.activityLog = [];
+          render();
+        });
+      return '<div class="content-area"><div class="loading-msg">Loading activity log...</div></div>';
+    }
 
-    return '<div class="content">' +
-      (state.error ? '<div class="inline-error">' + esc(state.error) + '</div>' : '') +
-      '<div class="page-header"><div>' +
-        '<div class="page-title">Activity Log</div>' +
-        '<div class="page-subtitle">Recent org activity and audit trail</div>' +
-      '</div><button class="btn btn-secondary btn-sm" id="refreshActivityBtn">Refresh</button></div>' +
-      '<div class="card"><div class="table-wrapper"><table class="dash-table">' +
-        '<thead><tr><th>User</th><th>Action</th><th>Date / Time</th><th>IP Address</th><th>Status</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-      '</table></div></div>' +
+    if (state.activityLog.length === 0) {
+      return '<div class="content-area"><div class="empty-state">No activity events found for the last 30 days.</div></div>';
+    }
+
+    const rows = state.activityLog.map(e => {
+      const badgeClass = e.status === 'Success' ? 'badge-resolved' : e.status === 'Failed' ? 'badge-critical' : 'badge-warning';
+      const ts = e.timestamp ? new Date(e.timestamp).toLocaleString() : '—';
+      return '<tr>' +
+        '<td>' + esc(e.user) + '</td>' +
+        '<td>' + esc(e.event_type) + '</td>' +
+        '<td>' + esc(e.action) + '</td>' +
+        '<td>' + ts + '</td>' +
+        '<td>' + esc(e.ip_address) || '—' + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + esc(e.status) + '</span></td>' +
+        '</tr>';
+    }).join('');
+
+    return '<div class="content-area">' +
+      '<div class="section-title">Activity Log <span class="muted">(last 30 days)</span></div>' +
+      '<div class="card">' +
+        '<table class="dash-table">' +
+          '<thead><tr>' +
+            '<th>User</th><th>Type</th><th>Action</th><th>Date / Time</th><th>IP Address</th><th>Status</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>' +
       '</div>';
   }
 
@@ -603,13 +620,8 @@
   // ================================================================
   // API — ACTIVITY LOG
   // ================================================================
-  async function loadActivity() {
-    try {
-      const r = await fetch(API + '/activity').then(r => r.json());
-      state.activityLog = Array.isArray(r) ? r : (r.activity || r.log || []);
-    } catch (e) {
-      state.activityLog = [];   // endpoint may not exist yet — graceful empty state
-    }
+  function loadActivity() {
+    state.activityLog = null;
     render();
   }
 
