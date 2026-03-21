@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import os
 import secrets
@@ -12,6 +14,16 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 TOKENS_FILE = BASE_DIR / "tokens.json"
 SF_LOGIN_URL = "https://login.salesforce.com"
+
+_pending_verifiers: dict[str, str] = {}
+
+
+def _generate_pkce_pair() -> tuple[str, str]:
+    """Returns (code_verifier, code_challenge)."""
+    code_verifier = secrets.token_urlsafe(43)
+    digest = hashlib.sha256(code_verifier.encode()).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    return code_verifier, code_challenge
 
 
 def _client_id() -> str:
@@ -30,28 +42,33 @@ def _redirect_uri() -> str:
 def get_auth_url(state: str | None = None) -> str:
     if state is None:
         state = secrets.token_urlsafe(16)
+    code_verifier, code_challenge = _generate_pkce_pair()
+    _pending_verifiers[state] = code_verifier
     params = {
         "response_type": "code",
         "client_id": _client_id(),
         "redirect_uri": _redirect_uri(),
         "scope": "api refresh_token",
         "state": state,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
     }
     return f"{SF_LOGIN_URL}/services/oauth2/authorize?{urlencode(params)}"
 
 
-def exchange_code(code: str) -> dict:
+def exchange_code(code: str, state: str = "") -> dict:
     """Exchange auth code for access + refresh tokens. Returns token dict."""
-    resp = requests.post(
-        f"{SF_LOGIN_URL}/services/oauth2/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": _client_id(),
-            "client_secret": _client_secret(),
-            "redirect_uri": _redirect_uri(),
-        },
-    )
+    code_verifier = _pending_verifiers.pop(state, None)
+    data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": _client_id(),
+        "client_secret": _client_secret(),
+        "redirect_uri": _redirect_uri(),
+    }
+    if code_verifier:
+        data["code_verifier"] = code_verifier
+    resp = requests.post(f"{SF_LOGIN_URL}/services/oauth2/token", data=data)
     resp.raise_for_status()
     return resp.json()
 

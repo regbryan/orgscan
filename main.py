@@ -57,7 +57,7 @@ def orgs_connect():
 @app.get("/orgs/callback", response_class=HTMLResponse)
 def orgs_callback(code: str, state: str = ""):
     try:
-        token_data = auth.exchange_code(code)
+        token_data = auth.exchange_code(code, state=state)
         auth.store_token_response(token_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
