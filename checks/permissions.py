@@ -21,7 +21,7 @@ def check_excessive_permissions(sf_client) -> list[Finding]:
                 detail=f"{name} has PermissionsModifyAllData = true",
                 recommendation="Remove Modify All Data unless this profile absolutely requires it.",
             ))
-        elif r.get("PermissionsViewAllData"):
+        if r.get("PermissionsViewAllData"):
             findings.append(Finding(
                 category="Permissions",
                 severity="Critical",
