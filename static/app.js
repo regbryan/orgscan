@@ -362,7 +362,7 @@
   // CONNECT SCREEN
   // ================================================================
   function renderConnectScreen() {
-    return '<div class="main-area" style="flex:1">' + renderTopbar() +
+    return '<div class="main-area" style="flex:1;margin-left:0">' + renderTopbar() +
       '<div class="connect-screen"><div class="connect-card">' +
         '<div class="connect-logo">' + I.shieldWh + '</div>' +
         '<div class="connect-title">Welcome to OrgScan</div>' +
