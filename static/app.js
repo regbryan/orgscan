@@ -555,10 +555,10 @@
     }
 
     function gaugeColor(s) {
-      if (s >= 75) return '#34d399';
-      if (s >= 50) return '#fbbf24';
-      if (s >= 25) return '#fb923c';
-      return '#f87171';
+      if (s >= 75) return '#2F6B3F';
+      if (s >= 50) return '#B45309';
+      if (s >= 25) return '#B45309';
+      return '#9B2C2C';
     }
     function gaugeLabel(s) {
       if (s >= 90) return 'EXCELLENT';
@@ -583,12 +583,9 @@
         return 'M ' + s0.x + ' ' + s0.y + ' A ' + r + ' ' + r + ' 0 ' + lg + ' 1 ' + e0.x + ' ' + e0.y;
       }
       return '<svg class="dash-gauge-svg" viewBox="0 0 200 148" fill="none">' +
-        '<defs>' +
-          '<filter id="gaugeGlow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-        '</defs>' +
-        '<path d="' + arc(-130, 260, R) + '" stroke="rgba(255,255,255,0.06)" stroke-width="14" stroke-linecap="round" fill="none"/>' +
-        (s > 0 ? '<path d="' + arc(-130, (s / 100) * 260, R) + '" stroke="' + col + '" stroke-width="14" stroke-linecap="round" fill="none" filter="url(#gaugeGlow)" style="opacity:0.9"/>' : '') +
-        '<text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" class="dash-g-num" fill="' + col + '" style="filter:drop-shadow(0 0 12px ' + col + ')">' + s + '</text>' +
+        '<path d="' + arc(-130, 260, R) + '" stroke="#D9D4C7" stroke-width="10" stroke-linecap="butt" fill="none"/>' +
+        (s > 0 ? '<path d="' + arc(-130, (s / 100) * 260, R) + '" stroke="#1B1C1E" stroke-width="10" stroke-linecap="butt" fill="none"/>' : '') +
+        '<text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" class="dash-g-num" fill="#1B1C1E">' + s + '</text>' +
         '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="dash-g-sub">/ 100</text>' +
         '<text x="' + cx + '" y="' + (cy + 33) + '" text-anchor="middle" class="dash-g-label" fill="' + col + '">' + gaugeLabel(s) + '</text>' +
       '</svg>';
@@ -1653,10 +1650,10 @@
     findings.forEach(f => { if (cnt[f.severity] !== undefined) cnt[f.severity]++; });
 
     function gaugeColor(s) {
-      if (s >= 75) return '#34d399';
-      if (s >= 50) return '#fbbf24';
-      if (s >= 25) return '#fb923c';
-      return '#f87171';
+      if (s >= 75) return '#2F6B3F';
+      if (s >= 50) return '#B45309';
+      if (s >= 25) return '#B45309';
+      return '#9B2C2C';
     }
 
     const username = org ? (org.username || 'Unknown User') : '—';

@@ -523,10 +523,10 @@ def _render_steps_structured(pdf, steps: list, pr: int, pg: int, pb: int):
         pdf.set_font("Helvetica", "B", 9)
         pdf.cell(pill_w, pill_h, _safe_text(str(n)), align="C")
 
-        # ── Step title (bold, large) ───────────────────────────────────────
+        # ── Step title (bold, large, ink) ─────────────────────────────────
         title_x = pill_x + pill_w + 3
         pdf.set_xy(title_x, banner_y + 1.6)
-        pdf.set_text_color(pr, pg, pb)
+        pdf.set_text_color(27, 28, 30)
         pdf.set_font("Helvetica", "B", 13)
         # Reserve room on the right for the type badge
         badge_w = 0
@@ -590,9 +590,9 @@ def _render_steps_structured(pdf, steps: list, pr: int, pg: int, pb: int):
                 row_h = max(6.2, line_count * 5.2)
 
                 y_before = pdf.get_y()
-                # Label (bold, primary color)
+                # Label (bold, ink)
                 pdf.set_xy(inner_l, y_before)
-                pdf.set_text_color(pr, pg, pb)
+                pdf.set_text_color(27, 28, 30)
                 pdf.set_font("Helvetica", "B", 9.5)
                 pdf.cell(label_w, row_h, key_str, ln=False)
                 # Value
@@ -618,11 +618,10 @@ def _render_steps_structured(pdf, steps: list, pr: int, pg: int, pb: int):
 
 
 def _render_resources_structured(pdf, resources: dict, pr: int, pg: int, pb: int):
-    """Render resources grouped by type with a banner subheader and bullet items."""
+    """Render resources as a single ledger-style block with small-caps subheads."""
     margin_l = 10
     inner_l = 14
     usable_w = 190
-    content_w = 186
 
     category_order = ["Variables", "Formulas", "Constants", "Choices", "TextTemplates", "Text Templates"]
     seen = set()
@@ -632,51 +631,48 @@ def _render_resources_structured(pdf, resources: dict, pr: int, pg: int, pb: int
             ordered.append(c)
             seen.add(c)
 
-    tint = _tint(pr, pg, pb, 0.92)
-    tint_rule = _tint(pr, pg, pb, 0.6)
-
+    first_category = True
     for category in ordered:
-        items = resources.get(category) or []
+        items = [i for i in (resources.get(category) or []) if isinstance(i, dict)]
         if not items:
             continue
-        if pdf.get_y() > 250:
+        if pdf.get_y() > 258:
             pdf.add_page()
 
         display = "Text Templates" if category == "TextTemplates" else category
-        count = len([i for i in items if isinstance(i, dict)])
+        count = len(items)
 
-        # ── Category banner (shorter, H3 style) ────────────────────────────
-        pdf.ln(3)
-        banner_y = pdf.get_y()
-        banner_h = 8
-        pdf.set_fill_color(*tint)
-        pdf.rect(margin_l, banner_y, usable_w, banner_h, "F")
-        pdf.set_fill_color(pr, pg, pb)
-        pdf.rect(margin_l, banner_y, 2, banner_h, "F")
+        # ── Small-caps subhead on hairline rule ───────────────────────────
+        if not first_category:
+            pdf.ln(4)
+        first_category = False
 
-        pdf.set_xy(margin_l + 5, banner_y + 1.2)
-        pdf.set_text_color(pr, pg, pb)
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.cell(120, 5.5, _safe_text(display), ln=False)
-
-        # Count badge on the right
-        count_txt = _safe_text(f"{count} item" + ("s" if count != 1 else ""))
-        pdf.set_font("Helvetica", "", 8.5)
-        pdf.set_text_color(110, 110, 110)
-        cw = pdf.get_string_width(count_txt) + 4
-        pdf.set_xy(margin_l + usable_w - cw - 3, banner_y + 2)
-        pdf.cell(cw, 4, count_txt, align="R")
-
-        pdf.set_y(banner_y + banner_h)
-        pdf.set_draw_color(*tint_rule)
+        sub_y = pdf.get_y()
+        # Top hairline rule
+        pdf.set_draw_color(217, 212, 199)  # --rule
         pdf.set_line_width(0.2)
-        pdf.line(margin_l, pdf.get_y(), margin_l + usable_w, pdf.get_y())
+        pdf.line(margin_l, sub_y, margin_l + usable_w, sub_y)
         pdf.ln(2)
 
-        # ── Items (bold name + description) ────────────────────────────────
+        # Category label (uppercase, letter-spaced, ink-dim)
+        pdf.set_x(margin_l)
+        pdf.set_text_color(90, 91, 94)  # --ink-dim
+        pdf.set_font("Helvetica", "B", 9)
+        label_txt = _safe_text(display.upper())
+        pdf.cell(120, 5, label_txt, ln=False)
+
+        # Count on the right, mono-ish look
+        count_txt = _safe_text(f"{count} item" + ("s" if count != 1 else ""))
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(140, 140, 140)
+        cw = pdf.get_string_width(count_txt) + 2
+        pdf.set_xy(margin_l + usable_w - cw, sub_y + 2)
+        pdf.cell(cw, 5, count_txt, align="R")
+
+        pdf.ln(8)
+
+        # ── Items ─────────────────────────────────────────────────────────
         for it in items:
-            if not isinstance(it, dict):
-                continue
             if pdf.get_y() > 272:
                 pdf.add_page()
             name = (it.get("name") or "").strip()
@@ -685,21 +681,20 @@ def _render_resources_structured(pdf, resources: dict, pr: int, pg: int, pb: int
                 continue
 
             pdf.set_x(inner_l)
-            # bullet
-            pdf.set_text_color(pr, pg, pb)
-            pdf.set_font("Helvetica", "B", 10)
+            # Bullet (en-dash, ink)
+            pdf.set_text_color(27, 28, 30)
+            pdf.set_font("Helvetica", "", 10)
             pdf.cell(4, 5.2, _safe_text("-"), ln=False)
-            # name (bold)
-            pdf.set_text_color(30, 30, 30)
+            # Name (bold, ink)
             pdf.set_font("Helvetica", "B", 9.5)
             name_str = _safe_text(name) if name else ""
             if name_str:
                 nw = pdf.get_string_width(name_str) + 0.5
                 pdf.cell(nw, 5.2, name_str, ln=False)
-            # detail (regular)
+            # Detail (regular, muted)
             if detail:
                 pdf.set_font("Helvetica", "", 9.5)
-                pdf.set_text_color(60, 60, 60)
+                pdf.set_text_color(80, 80, 80)
                 remaining = (margin_l + usable_w) - pdf.get_x() - 2
                 sep = " -- " if name_str else ""
                 pdf.multi_cell(remaining, 5.2, _safe_text(f"{sep}{detail}"))
@@ -718,8 +713,6 @@ def _render_recommendations_structured(pdf, recs: list):
         text = (r.get("text") or "").strip()
         if not text:
             continue
-        sev_key = sev_raw.lower()
-        color = _SEVERITY_COLORS.get(sev_key, (100, 100, 100))
         label = sev_raw.upper() if sev_raw else ""
 
         if pdf.get_y() > 258:
@@ -727,7 +720,7 @@ def _render_recommendations_structured(pdf, recs: list):
 
         if label:
             pdf.set_x(14)
-            sr, sg, sb = color
+            sr, sg, sb = _BADGE_NEUTRAL
             pdf.set_fill_color(sr, sg, sb)
             pdf.set_text_color(255, 255, 255)
             pdf.set_font("Helvetica", "B", 7.5)
