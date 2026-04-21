@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 BASE_DIR = Path(__file__).parent
 TOKENS_FILE = BASE_DIR / "tokens.json"
@@ -57,17 +57,24 @@ def get_auth_url(state: str | None = None) -> str:
 
 
 def exchange_code(code: str, state: str = "") -> dict:
-    """Exchange auth code for access + refresh tokens. Returns token dict."""
+    """Exchange auth code for access + refresh tokens. Returns token dict.
+
+    Raises ValueError if the state parameter is missing or doesn't match
+    a pending PKCE verifier (prevents CSRF and ensures PKCE is enforced).
+    """
+    if not state:
+        raise ValueError("Missing OAuth state parameter. Please try connecting again.")
     code_verifier = _pending_verifiers.pop(state, None)
+    if not code_verifier:
+        raise ValueError("Invalid or expired OAuth state. Please try connecting again.")
     data = {
         "grant_type": "authorization_code",
         "code": code,
         "client_id": _client_id(),
         "client_secret": _client_secret(),
         "redirect_uri": _redirect_uri(),
+        "code_verifier": code_verifier,
     }
-    if code_verifier:
-        data["code_verifier"] = code_verifier
     resp = requests.post(f"{SF_LOGIN_URL}/services/oauth2/token", data=data)
     resp.raise_for_status()
     return resp.json()
@@ -104,6 +111,11 @@ def load_tokens() -> dict:
 
 def save_tokens(tokens: dict) -> None:
     TOKENS_FILE.write_text(json.dumps(tokens, indent=2), encoding="utf-8")
+    # Restrict file permissions to owner-only (read/write)
+    try:
+        os.chmod(TOKENS_FILE, 0o600)
+    except OSError:
+        pass  # Windows doesn't support chmod the same way — acceptable
 
 
 def get_org(org_id: str) -> dict | None:

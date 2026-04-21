@@ -9,3 +9,4 @@ class Finding:
     detail: str             # Full detail / affected records
     recommendation: str     # What the consultant should do
     flow_api_name: str | None = None  # Set only for flow findings (Salesforce DeveloperName)
+    link: str = ""                    # Direct Salesforce URL for this specific record
