@@ -13,7 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 
 try:
     from weasyprint import HTML
-except OSError:
+except (OSError, ImportError):
     HTML = None
 
 from checks import Finding
@@ -467,127 +467,245 @@ def _render_config_table_dict(pdf, cfg: dict, pr: int, pg: int, pb: int):
     pdf.ln(2)
 
 
-def _render_steps_structured(pdf, steps: list, pr: int, pg: int, pb: int):
-    """Render each step as:  Step N — Name  /  key: value bullets  /  description sentence."""
-    for idx, step in enumerate(steps):
-        # Page-break awareness: ensure ~35mm remains for a step block
-        if pdf.get_y() > 250:
-            pdf.add_page()
+_BADGE_NEUTRAL = (71, 85, 105)  # slate-600 — single muted color for all type badges
 
+
+def _tint(pr: int, pg: int, pb: int, mix: float = 0.9) -> tuple[int, int, int]:
+    """Blend color with white by `mix` (1.0 = pure white, 0.0 = pure color)."""
+    return (
+        int(pr + (255 - pr) * mix),
+        int(pg + (255 - pg) * mix),
+        int(pb + (255 - pb) * mix),
+    )
+
+
+def _render_steps_structured(pdf, steps: list, pr: int, pg: int, pb: int):
+    """Render each step with a prominent banner header, type pill, field rows, and description."""
+    margin_l = 10
+    inner_l = 14      # inside the banner/content
+    usable_w = 190
+    content_w = 186   # inside padding
+
+    tint = _tint(pr, pg, pb, 0.9)         # very light band fill
+    tint_rule = _tint(pr, pg, pb, 0.6)    # rule under banner
+
+    for idx, step in enumerate(steps):
         n = step.get("n", idx + 1)
         name = (step.get("name") or "").strip()
         stype = (step.get("type") or "").strip()
-
-        # Step heading — colored, bold, with subtle accent bar
-        pdf.ln(3)
-        y = pdf.get_y()
-        pdf.set_fill_color(pr, pg, pb)
-        pdf.rect(10, y + 1, 2.5, 5.5, "F")
-        pdf.set_x(14.5)
-        pdf.set_text_color(pr, pg, pb)
-        pdf.set_font("Helvetica", "B", 11)
-        heading = f"Step {n} -- {name}" if name else f"Step {n}"
-        pdf.cell(0, 7, _safe_text(heading), ln=True)
-
-        # Type badge line (muted)
-        if stype:
-            pdf.set_x(14.5)
-            pdf.set_text_color(110, 110, 110)
-            pdf.set_font("Helvetica", "I", 8.5)
-            pdf.cell(0, 4, _safe_text(stype), ln=True)
-
-        # Key/value bullets for fields
         fields = step.get("fields") or {}
+        desc = (step.get("description") or "").strip()
+
+        # Reserve enough room so the banner doesn't orphan at the page bottom
+        if pdf.get_y() > 245:
+            pdf.add_page()
+
+        pdf.ln(4)
+        banner_y = pdf.get_y()
+        banner_h = 12
+
+        # ── Banner background ──────────────────────────────────────────────
+        pdf.set_fill_color(*tint)
+        pdf.rect(margin_l, banner_y, usable_w, banner_h, "F")
+        # Left accent strip
+        pdf.set_fill_color(pr, pg, pb)
+        pdf.rect(margin_l, banner_y, 2.5, banner_h, "F")
+
+        # ── Number pill ────────────────────────────────────────────────────
+        pill_x = margin_l + 6
+        pill_y = banner_y + 2
+        pill_w = 9
+        pill_h = 8
+        pdf.set_fill_color(pr, pg, pb)
+        pdf.rect(pill_x, pill_y, pill_w, pill_h, "F")
+        pdf.set_xy(pill_x, pill_y)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(pill_w, pill_h, _safe_text(str(n)), align="C")
+
+        # ── Step title (bold, large) ───────────────────────────────────────
+        title_x = pill_x + pill_w + 3
+        pdf.set_xy(title_x, banner_y + 1.6)
+        pdf.set_text_color(pr, pg, pb)
+        pdf.set_font("Helvetica", "B", 13)
+        # Reserve room on the right for the type badge
+        badge_w = 0
+        if stype:
+            pdf.set_font("Helvetica", "B", 7.5)
+            badge_text = _safe_text(stype.upper())
+            badge_w = pdf.get_string_width(badge_text) + 8
+            pdf.set_font("Helvetica", "B", 13)
+        title_max_w = (margin_l + usable_w) - title_x - badge_w - 4
+        title_text = _safe_text(f"Step {n}: {name}" if name else f"Step {n}")
+        # Clip overlong titles so badge stays visible
+        if pdf.get_string_width(title_text) > title_max_w:
+            while pdf.get_string_width(title_text + "...") > title_max_w and len(title_text) > 4:
+                title_text = title_text[:-1]
+            title_text = title_text + "..."
+        pdf.cell(title_max_w, 9, title_text, ln=False)
+
+        # ── Type badge (right-aligned, neutral slate) ──────────────────────
+        if stype:
+            tr, tg, tb = _BADGE_NEUTRAL
+            badge_h = 5
+            badge_x = margin_l + usable_w - badge_w - 3
+            badge_y = banner_y + (banner_h - badge_h) / 2
+            pdf.set_fill_color(tr, tg, tb)
+            pdf.rect(badge_x, badge_y, badge_w, badge_h, "F")
+            pdf.set_xy(badge_x, badge_y)
+            pdf.set_text_color(255, 255, 255)
+            pdf.set_font("Helvetica", "B", 7.5)
+            pdf.cell(badge_w, badge_h, _safe_text(stype.upper()), align="C")
+
+        # Move below the banner
+        pdf.set_y(banner_y + banner_h)
+        # Subtle rule under banner
+        pdf.set_draw_color(*tint_rule)
+        pdf.set_line_width(0.2)
+        pdf.line(margin_l, pdf.get_y(), margin_l + usable_w, pdf.get_y())
+        pdf.ln(3)
+
+        # ── Field rows (two-column definition list) ────────────────────────
         if fields:
-            pdf.ln(1)
-            pdf.set_font("Helvetica", "", 9.5)
+            label_w = 34
+            value_w = content_w - label_w - 4
             for k, v in fields.items():
                 if v is None or str(v).strip() == "":
                     continue
-                pdf.set_x(18)
-                # bullet
-                pdf.set_text_color(pr, pg, pb)
-                pdf.set_font("Helvetica", "B", 10)
-                pdf.cell(3.5, 5.5, _safe_text("-"), ln=False)
-                # key (bold)
-                pdf.set_text_color(40, 40, 40)
-                pdf.set_font("Helvetica", "B", 9.5)
-                key_str = _safe_text(f"{k}: ")
-                kw = pdf.get_string_width(key_str) + 0.5
-                pdf.cell(kw, 5.5, key_str, ln=False)
-                # value
+                # Page break inside a field block if needed
+                if pdf.get_y() > 270:
+                    pdf.add_page()
+                key_str = _safe_text(f"{k}")
+                val_str = _safe_text(str(v))
+
+                # Measure wrapped value height via dry-run split
                 pdf.set_font("Helvetica", "", 9.5)
-                pdf.set_text_color(60, 60, 60)
-                remaining = 192 - pdf.get_x()
-                pdf.multi_cell(remaining, 5.5, _safe_text(str(v)))
+                try:
+                    lines = pdf.multi_cell(value_w, 5.2, val_str, split_only=True)
+                    line_count = max(1, len(lines))
+                except TypeError:
+                    # Older fpdf2 versions may not accept split_only — fall back to rough estimate
+                    chars_per_line = max(1, int(value_w / 1.8))
+                    line_count = max(1, (len(val_str) + chars_per_line - 1) // chars_per_line)
+                row_h = max(6.2, line_count * 5.2)
 
-        # Plain-English description
-        desc = (step.get("description") or "").strip()
+                y_before = pdf.get_y()
+                # Label (bold, primary color)
+                pdf.set_xy(inner_l, y_before)
+                pdf.set_text_color(pr, pg, pb)
+                pdf.set_font("Helvetica", "B", 9.5)
+                pdf.cell(label_w, row_h, key_str, ln=False)
+                # Value
+                pdf.set_xy(inner_l + label_w + 4, y_before)
+                pdf.set_text_color(40, 40, 40)
+                pdf.set_font("Helvetica", "", 9.5)
+                pdf.multi_cell(value_w, 5.2, val_str)
+                if pdf.get_y() < y_before + row_h:
+                    pdf.set_y(y_before + row_h)
+                pdf.ln(0.5)
+
+        # ── Description (italic paragraph) ─────────────────────────────────
         if desc:
+            if pdf.get_y() > 270:
+                pdf.add_page()
             pdf.ln(1)
-            pdf.set_x(18)
-            pdf.set_text_color(55, 55, 55)
-            pdf.set_font("Helvetica", "", 9.5)
-            pdf.multi_cell(178, 5.2, _safe_text(desc))
+            pdf.set_x(inner_l)
+            pdf.set_text_color(70, 70, 70)
+            pdf.set_font("Helvetica", "I", 9.5)
+            pdf.multi_cell(content_w, 5.2, _safe_text(desc))
 
-        # Divider between steps (not after the last)
-        if idx < len(steps) - 1:
-            pdf.ln(2)
-            pdf.set_draw_color(230, 230, 230)
-            pdf.line(14, pdf.get_y(), 196, pdf.get_y())
-            pdf.ln(1)
+        pdf.ln(3)
 
 
 def _render_resources_structured(pdf, resources: dict, pr: int, pg: int, pb: int):
-    """Render resources grouped by type with bold name + description bullets."""
+    """Render resources grouped by type with a banner subheader and bullet items."""
+    margin_l = 10
+    inner_l = 14
+    usable_w = 190
+    content_w = 186
+
     category_order = ["Variables", "Formulas", "Constants", "Choices", "TextTemplates", "Text Templates"]
     seen = set()
     ordered = [c for c in category_order if c in resources and c not in seen and not seen.add(c)]
-    # Append any extra categories the AI invented
     for c in resources.keys():
         if c not in seen:
             ordered.append(c)
             seen.add(c)
 
+    tint = _tint(pr, pg, pb, 0.92)
+    tint_rule = _tint(pr, pg, pb, 0.6)
+
     for category in ordered:
         items = resources.get(category) or []
         if not items:
             continue
-        # Category header
-        if pdf.get_y() > 255:
+        if pdf.get_y() > 250:
             pdf.add_page()
-        pdf.ln(2)
-        pdf.set_x(12)
-        pdf.set_text_color(pr, pg, pb)
-        pdf.set_font("Helvetica", "B", 10.5)
-        display = "Text Templates" if category == "TextTemplates" else category
-        pdf.cell(0, 6, _safe_text(display), ln=True)
-        pdf.set_draw_color(pr, pg, pb)
-        pdf.line(12, pdf.get_y(), 60, pdf.get_y())
-        pdf.ln(1.5)
 
+        display = "Text Templates" if category == "TextTemplates" else category
+        count = len([i for i in items if isinstance(i, dict)])
+
+        # ── Category banner (shorter, H3 style) ────────────────────────────
+        pdf.ln(3)
+        banner_y = pdf.get_y()
+        banner_h = 8
+        pdf.set_fill_color(*tint)
+        pdf.rect(margin_l, banner_y, usable_w, banner_h, "F")
+        pdf.set_fill_color(pr, pg, pb)
+        pdf.rect(margin_l, banner_y, 2, banner_h, "F")
+
+        pdf.set_xy(margin_l + 5, banner_y + 1.2)
+        pdf.set_text_color(pr, pg, pb)
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(120, 5.5, _safe_text(display), ln=False)
+
+        # Count badge on the right
+        count_txt = _safe_text(f"{count} item" + ("s" if count != 1 else ""))
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(110, 110, 110)
+        cw = pdf.get_string_width(count_txt) + 4
+        pdf.set_xy(margin_l + usable_w - cw - 3, banner_y + 2)
+        pdf.cell(cw, 4, count_txt, align="R")
+
+        pdf.set_y(banner_y + banner_h)
+        pdf.set_draw_color(*tint_rule)
+        pdf.set_line_width(0.2)
+        pdf.line(margin_l, pdf.get_y(), margin_l + usable_w, pdf.get_y())
+        pdf.ln(2)
+
+        # ── Items (bold name + description) ────────────────────────────────
         for it in items:
             if not isinstance(it, dict):
                 continue
+            if pdf.get_y() > 272:
+                pdf.add_page()
             name = (it.get("name") or "").strip()
             detail = (it.get("detail") or "").strip()
-            pdf.set_x(16)
+            if not name and not detail:
+                continue
+
+            pdf.set_x(inner_l)
+            # bullet
             pdf.set_text_color(pr, pg, pb)
-            pdf.set_font("Helvetica", "B", 9.5)
-            pdf.cell(3.5, 5, _safe_text("-"), ln=False)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(4, 5.2, _safe_text("-"), ln=False)
+            # name (bold)
             pdf.set_text_color(30, 30, 30)
             pdf.set_font("Helvetica", "B", 9.5)
-            name_str = _safe_text(name)
-            nw = pdf.get_string_width(name_str) + 0.5
-            pdf.cell(nw, 5, name_str, ln=False)
+            name_str = _safe_text(name) if name else ""
+            if name_str:
+                nw = pdf.get_string_width(name_str) + 0.5
+                pdf.cell(nw, 5.2, name_str, ln=False)
+            # detail (regular)
             if detail:
                 pdf.set_font("Helvetica", "", 9.5)
                 pdf.set_text_color(60, 60, 60)
-                remaining = 192 - pdf.get_x()
-                pdf.multi_cell(remaining, 5, _safe_text(f" -- {detail}"))
+                remaining = (margin_l + usable_w) - pdf.get_x() - 2
+                sep = " -- " if name_str else ""
+                pdf.multi_cell(remaining, 5.2, _safe_text(f"{sep}{detail}"))
             else:
-                pdf.ln(5)
-            pdf.ln(0.5)
+                pdf.ln(5.2)
+            pdf.ln(0.4)
 
 
 def _render_recommendations_structured(pdf, recs: list):
