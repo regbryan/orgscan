@@ -247,12 +247,19 @@ def generate_flow_pdf(
                 # PNG header: 8-byte signature, then IHDR chunk with width/height
                 # as big-endian uint32 at offsets 16-23.
                 px_w, px_h = struct.unpack(">II", png_bytes[16:24])
-                natural_w_mm = (px_w / 200.0) * 25.4
-                natural_h_mm = (px_h / 200.0) * 25.4
-                # Caps: max 140mm wide, max 180mm tall (A4 writable ~170x257mm).
-                MAX_W, MAX_H = 140.0, 180.0
+                # Treat source as 240dpi so natural size is compact but text
+                # stays readable. Simple flows ~48mm wide, complex cap at 95mm.
+                natural_w_mm = (px_w / 240.0) * 25.4
+                natural_h_mm = (px_h / 240.0) * 25.4
+                # Caps: max 95mm wide, max 150mm tall (A4 writable ~170x257mm).
+                MAX_W, MAX_H = 95.0, 150.0
                 # Do NOT scale up past natural size — keeps small flows small.
                 scale = min(1.0, MAX_W / natural_w_mm, MAX_H / natural_h_mm)
+                # Floor: never shrink below 45mm wide — text must remain legible.
+                MIN_W = 45.0
+                w_natural_scaled = natural_w_mm * scale
+                if w_natural_scaled < MIN_W and natural_w_mm > 0:
+                    scale = min(MAX_W / natural_w_mm, MAX_H / natural_h_mm, MIN_W / natural_w_mm)
                 w_mm = natural_w_mm * scale
                 # Center horizontally on 210mm page.
                 x_mm = (210.0 - w_mm) / 2.0

@@ -201,7 +201,9 @@ def _apply_visio_geometry(dot: str) -> str:
                 primaries = [oe for oe in outs if oe['kind'] == 'primary']
                 first_primary = primaries[0] if primaries else None
                 if kind == 'fault':
-                    e['sp'], e['tp'] = 'w', 'e'
+                    # Fault branches to the EAST (side) so the primary flow stays
+                    # on the vertical spine on the left.
+                    e['sp'], e['tp'] = 'e', 'w'
                 elif e is first_primary:
                     e['sp'], e['tp'] = 's', 'n'
                 elif kind == 'primary':
@@ -226,12 +228,98 @@ def _apply_visio_geometry(dot: str) -> str:
     for row in process_rows:
         if len(row) >= 2:
             rank_blocks.append('  { rank=same; ' + '; '.join(_vg_quote_if_needed(n) for n in row) + '; }')
+    # Pin fault-branch targets to the same rank as their source process, so they
+    # sit side-by-side instead of Graphviz pushing them to another row.
+    # Only for SIDE branches (source has 2+ outputs), not vertical continuations
+    # of a fault chain (where the fault node has a single downstream step).
+    for e in edges:
+        if (
+            e['kind'] == 'fault'
+            and not is_diamond(e['src'])
+            and len(outgoing[e['src']]) >= 2
+        ):
+            pair = [e['src'], e['tgt']]
+            rank_blocks.append('  { rank=same; ' + '; '.join(_vg_quote_if_needed(n) for n in pair) + '; }')
 
     if rank_blocks:
         last_brace = dot.rfind('}')
         if last_brace > 0:
             injection = '\n' + '\n'.join(rank_blocks) + '\n'
             dot = dot[:last_brace] + injection + dot[last_brace:]
+
+    # ------------------------------------------------------------------
+    # Pass 8: enforce uniform node size.
+    # Every shape (box, diamond, oval, etc.) gets the SAME bounding box
+    # so the diagram looks consistent. We:
+    #   (a) strip per-node width/height/fixedsize attributes, and
+    #   (b) inject fixedsize=true + uniform width/height into the node
+    #       default attribute block.
+    # ------------------------------------------------------------------
+    UNIFORM_W, UNIFORM_H = 1.8, 0.7
+
+    def _strip_size_attrs(body: str) -> str:
+        body = _re2.sub(r'\b(?:width|height|fixedsize)\s*=\s*"[^"]*"\s*,?\s*', '', body)
+        body = _re2.sub(r'\b(?:width|height|fixedsize)\s*=\s*[^,\]\s]+\s*,?\s*', '', body)
+        # clean trailing/leading commas left by the strips
+        body = _re2.sub(r',\s*,', ',', body)
+        body = body.strip().strip(',').strip()
+        return body
+
+    # Strip size attrs from every node declaration (but NOT from edges or defaults)
+    # Rebuild by walking _VG_NODE_RE over a masked copy (edges+defaults already masked).
+    new_parts = []
+    last_idx = 0
+    # Re-mask edges and defaults in the current dot
+    m_buf = list(dot)
+    for m in _VG_EDGE_RE.finditer(dot):
+        for i in range(m.start(), m.end()):
+            m_buf[i] = ' '
+    masked2 = ''.join(m_buf)
+    for m in _VG_DEFAULT_RE.finditer(masked2):
+        masked2 = masked2[:m.start()] + (' ' * (m.end() - m.start())) + masked2[m.end():]
+
+    node_matches = list(_VG_NODE_RE.finditer(masked2))
+    out_buf = []
+    cursor = 0
+    for m in node_matches:
+        name = m.group(1).strip('"')
+        if name in ('graph', 'node', 'edge', 'digraph', 'subgraph', 'strict'):
+            continue
+        body = m.group(2)
+        cleaned = _strip_size_attrs(body)
+        new_decl = f'{m.group(1)} [{cleaned}]'
+        out_buf.append(dot[cursor:m.start()])
+        out_buf.append(new_decl)
+        cursor = m.end()
+    out_buf.append(dot[cursor:])
+    dot = ''.join(out_buf)
+
+    # Inject/rewrite the node default block to enforce uniform size.
+    node_default_re = _re2.compile(r'node\s*\[([^\]]*)\]\s*;?', _re2.IGNORECASE)
+    nd = node_default_re.search(dot)
+    if nd:
+        inner = nd.group(1)
+        inner = _strip_size_attrs(inner)
+        if inner and not inner.endswith(','):
+            inner = inner + ','
+        new_default = f'node [{inner} fixedsize=true, width={UNIFORM_W}, height={UNIFORM_H}]'
+        dot = dot[:nd.start()] + new_default + dot[nd.end():]
+    else:
+        # No node default present — insert one after `digraph NAME {`
+        open_brace = dot.find('{')
+        if open_brace > 0:
+            insertion = f'\n  node [fixedsize=true, width={UNIFORM_W}, height={UNIFORM_H}];\n'
+            dot = dot[:open_brace + 1] + insertion + dot[open_brace + 1:]
+
+    # ------------------------------------------------------------------
+    # Pass 9: fix Claude-emitted attribute bugs.
+    #   - `fill=` is not valid Graphviz; the attribute is `fillcolor=`.
+    #     Without this rewrite every node renders gray.
+    #   - `shape=note` (the folded-corner document glyph) looks odd mixed
+    #     with rectangles/ovals; normalize to `shape=box`.
+    # ------------------------------------------------------------------
+    dot = _re2.sub(r'\bfill\s*=', 'fillcolor=', dot)
+    dot = _re2.sub(r'shape\s*=\s*note\b', 'shape=box', dot)
 
     return dot
 
@@ -454,7 +542,19 @@ def generate_flow_document(flow_metadata: str) -> dict:
     # also injects `rank=same` subgraphs. See _apply_visio_geometry docstring.
     # --------------------------------------------------------------------
     if diag:
+        # Capture pre-processor DOT for debugging (what Claude emitted)
+        try:
+            from pathlib import Path as _DbgPath
+            _DbgPath(r"C:\Users\reggi\Downloads\orgscan_last_flow_raw.dot").write_text(diag, encoding="utf-8")
+        except Exception:
+            pass
         diag = _apply_visio_geometry(diag)
+        # Capture post-processor DOT for debugging (what goes to Graphviz)
+        try:
+            from pathlib import Path as _DbgPath2
+            _DbgPath2(r"C:\Users\reggi\Downloads\orgscan_last_flow_final.dot").write_text(diag, encoding="utf-8")
+        except Exception:
+            pass
 
     # Build legacy string views so generate_flow_pdf's text path still works
     cfg_dict = data.get("configuration") or {}
