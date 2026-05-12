@@ -1,6 +1,7 @@
 import base64
 import io
 import re
+import struct
 import tempfile
 from collections import defaultdict
 from datetime import date
@@ -27,7 +28,7 @@ def load_branding() -> dict:
     if CONFIG_FILE.exists():
         data = toml.loads(CONFIG_FILE.read_text(encoding="utf-8"))
         return data.get("branding", {})
-    return {"consultant_name": "Consultant", "logo_path": "", "primary_color": "#1e40af"}
+    return {"consultant_name": "Consultant", "logo_path": "", "primary_color": "#C14A3D"}
 
 
 def generate_pdf(
@@ -114,7 +115,7 @@ def _safe_text(text: str) -> str:
 
 
 def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    """Convert '#1e40af' to (30, 64, 175)."""
+    """Convert '#C14A3D' to (30, 64, 175)."""
     h = hex_color.lstrip("#")
     if len(h) == 6:
         return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
@@ -175,7 +176,7 @@ def generate_flow_pdf(
       6. Recommendations (severity-badged)
       7. Footer
     """
-    primary = branding.get("primary_color", "#1e40af")
+    primary = branding.get("primary_color", "#C14A3D")
     pr, pg, pb = _hex_to_rgb(primary)
     consultant = branding.get("consultant_name", "Consultant")
     today = date.today().strftime("%B %d, %Y")
@@ -239,7 +240,33 @@ def generate_flow_pdf(
             tmp.write(png_bytes)
             tmp_path = tmp.name
         try:
-            pdf.image(tmp_path, x=30, w=130)
+            # Adaptive sizing: scale the diagram by its natural pixel dimensions
+            # (DOT was rendered at dpi=200). Cap both width and height so simple
+            # flows stay compact while complex ones can fill the page.
+            try:
+                # PNG header: 8-byte signature, then IHDR chunk with width/height
+                # as big-endian uint32 at offsets 16-23.
+                px_w, px_h = struct.unpack(">II", png_bytes[16:24])
+                # Treat source as 240dpi so natural size is compact but text
+                # stays readable. Simple flows ~48mm wide, complex cap at 95mm.
+                natural_w_mm = (px_w / 240.0) * 25.4
+                natural_h_mm = (px_h / 240.0) * 25.4
+                # Caps: max 95mm wide, max 150mm tall (A4 writable ~170x257mm).
+                MAX_W, MAX_H = 95.0, 150.0
+                # Do NOT scale up past natural size — keeps small flows small.
+                scale = min(1.0, MAX_W / natural_w_mm, MAX_H / natural_h_mm)
+                # Floor: never shrink below 45mm wide — text must remain legible.
+                MIN_W = 45.0
+                w_natural_scaled = natural_w_mm * scale
+                if w_natural_scaled < MIN_W and natural_w_mm > 0:
+                    scale = min(MAX_W / natural_w_mm, MAX_H / natural_h_mm, MIN_W / natural_w_mm)
+                w_mm = natural_w_mm * scale
+                # Center horizontally on 210mm page.
+                x_mm = (210.0 - w_mm) / 2.0
+                pdf.image(tmp_path, x=x_mm, w=w_mm)
+            except Exception:
+                # Fallback to previous fixed size if PNG parse fails.
+                pdf.image(tmp_path, x=55, w=100)
         except Exception:
             pdf.set_font("Helvetica", "I", 9)
             pdf.set_text_color(150, 150, 150)

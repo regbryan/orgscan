@@ -113,6 +113,7 @@ def _check_rate_limit(request: Request, bucket_name: str = "default") -> None:
 # ── App setup ────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
 STATIC_DIR = BASE_DIR / "static"
+MARKETING_DIR = BASE_DIR / "marketing"
 
 app = FastAPI(title="OrgScan", docs_url=None, redoc_url=None)  # Disable docs in prod
 
@@ -133,7 +134,7 @@ _SESSION_COOKIE = "orgscan_session"
 _valid_sessions: set[str] = set()
 
 # Public paths that don't require auth
-_PUBLIC_PATHS = frozenset({"/", "/orgs/connect", "/orgs/callback"})
+_PUBLIC_PATHS = frozenset({"/", "/orgs/connect", "/orgs/callback", "/marketing"})
 
 
 def _is_public_path(path: str) -> bool:
@@ -193,6 +194,11 @@ _cross_matches: list[dict] = []
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+
+@app.get("/marketing", response_class=HTMLResponse)
+def marketing():
+    return (MARKETING_DIR / "index.html").read_text(encoding="utf-8")
 
 
 # --- Orgs ---
