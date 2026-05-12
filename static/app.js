@@ -233,7 +233,29 @@
   function closeModal() {
     state.activeFinding = null;
     const m = document.getElementById('finding-modal');
-    if (m) m.remove();
+    if (!m) return;
+    // Animate out via class swap, then remove on transitionend. Respect
+    // prefers-reduced-motion by removing instantly.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      m.remove();
+      return;
+    }
+    m.classList.remove('is-open');
+    m.classList.add('is-closing');
+    const card = m.querySelector('.modal-card');
+    const cleanup = () => m.remove();
+    if (card) {
+      let done = false;
+      card.addEventListener('transitionend', function once() {
+        if (done) return;
+        done = true;
+        card.removeEventListener('transitionend', once);
+        cleanup();
+      }, { once: true });
+      setTimeout(() => { if (!done) { done = true; cleanup(); } }, 240);
+    } else {
+      setTimeout(cleanup, 200);
+    }
   }
 
   function formatDetailHtml(detail) {
@@ -318,6 +340,11 @@
         aiSection +
       '</div>';
     document.body.appendChild(div);
+    // Trigger enter transition on the next frame (after the initial style
+    // is applied), so opacity/transform animate from their resting state.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { div.classList.add('is-open'); });
+    });
     div.addEventListener('click', e => { if (e.target === div) closeModal(); });
     document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
     const actBtn = document.getElementById('modalActionBtn');

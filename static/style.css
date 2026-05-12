@@ -42,6 +42,9 @@
 
   /* Metrics */
   --col-sidebar: 232px;
+
+  /* Motion — ease-out exponential per DESIGN.md (Emil/Jakub agree). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ---------- reset ---------- */
@@ -64,7 +67,7 @@ a {
   text-decoration-color: var(--rule-strong);
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
-  transition: color 120ms ease, text-decoration-color 120ms ease;
+  transition: color 120ms var(--ease-out), text-decoration-color 120ms var(--ease-out);
 }
 a:hover { color: var(--parchment); text-decoration-color: var(--parchment); }
 
@@ -187,7 +190,7 @@ code, kbd, samp, pre { font-family: var(--font-mono); font-size: 0.92em; }
   font-weight: 400;
   letter-spacing: 0;
   background: transparent;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
   position: relative;
 }
 .nav-item:hover { background: var(--surface-alt); color: var(--ivory); }
@@ -284,7 +287,7 @@ code, kbd, samp, pre { font-family: var(--font-mono); font-size: 0.92em; }
   border-radius: 2px;
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition: border-color 120ms var(--ease-out), color 120ms var(--ease-out);
 }
 .hamburger:hover { border-color: var(--ivory-dim); color: var(--ivory); }
 
@@ -397,10 +400,11 @@ code, kbd, samp, pre { font-family: var(--font-mono); font-size: 0.92em; }
   border-radius: 2px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out), color 120ms var(--ease-out), transform 80ms var(--ease-out);
   user-select: none;
   text-decoration: none;
 }
+.btn:active:not(:disabled) { transform: scale(0.97); }
 .btn:focus-visible {
   outline: 2px solid var(--cinnabar);
   outline-offset: 2px;
@@ -459,7 +463,7 @@ input[type="password"], input[type="url"], select, textarea,
   font-family: var(--font-serif);
   font-size: 13px;
   line-height: 1.4;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: border-color 120ms var(--ease-out), box-shadow 120ms var(--ease-out);
   outline: none;
 }
 input:focus, select:focus, textarea:focus,
@@ -699,7 +703,7 @@ select, .filter-select, .dup-object-select {
   padding: 8px 0;
   cursor: pointer;
   border-bottom: 1px dashed var(--rule);
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-out);
 }
 .dash-mc-item:last-child { border-bottom: none; }
 .dash-mc-item:hover .dash-mc-item-title { color: var(--parchment); }
@@ -722,7 +726,7 @@ select, .filter-select, .dup-object-select {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-out);
 }
 
 .dash-mc-empty {
@@ -746,7 +750,7 @@ select, .filter-select, .dup-object-select {
   border-top: 1px solid var(--rule);
   cursor: pointer;
   text-align: left;
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-out);
 }
 .dash-mc-more:hover { color: var(--ivory); }
 
@@ -888,7 +892,7 @@ select, .filter-select, .dup-object-select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: color 120ms ease, background 120ms ease;
+  transition: color 120ms var(--ease-out), background 120ms var(--ease-out);
 }
 .pill-tab:last-child { border-right: none; }
 .pill-tab:hover { color: var(--ivory); background: var(--surface-alt); }
@@ -934,7 +938,7 @@ select, .filter-select, .dup-object-select {
 .table-wrapper tbody tr {
   counter-increment: finding;
   border-bottom: 1px solid var(--rule);
-  transition: background 100ms ease;
+  transition: background 100ms var(--ease-out);
 }
 .table-wrapper tbody tr:hover { background: var(--surface-alt); }
 .table-wrapper tbody td {
@@ -1068,7 +1072,11 @@ select, .filter-select, .dup-object-select {
   justify-content: center;
   padding: 32px;
   overflow-y: auto;
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
 }
+.modal-overlay.is-open { opacity: 1; }
+
 .modal-card {
   background: var(--surface);
   border: 1px solid var(--rule-strong);
@@ -1079,6 +1087,23 @@ select, .filter-select, .dup-object-select {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  /* Enter: opacity + 8px translateY + 4px blur, eased out exponentially. */
+  transform: translateY(8px);
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out), filter 240ms var(--ease-out);
+}
+.modal-overlay.is-open .modal-card {
+  transform: translateY(0);
+  filter: blur(0);
+  opacity: 1;
+}
+.modal-overlay.is-closing { opacity: 0; }
+.modal-overlay.is-closing .modal-card {
+  transform: translateY(-4px);
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), filter 160ms var(--ease-out);
 }
 .modal-header {
   padding: 28px 32px;
@@ -1318,7 +1343,7 @@ select, .filter-select, .dup-object-select {
   cursor: pointer;
   font-size: 12.5px;
   color: var(--ivory);
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
 }
 .dup-field-cb:hover { background: var(--surface-alt); border-color: var(--rule-strong); }
 .dup-field-cb input { accent-color: var(--cinnabar); }
@@ -1786,7 +1811,7 @@ select, .filter-select, .dup-object-select {
   border: 2px solid var(--rule-strong);
   border-top-color: var(--ivory);
   border-radius: 50%;
-  animation: spin 720ms linear infinite;
+  animation: spin 600ms linear infinite;
   vertical-align: middle;
 }
 .spinner-dark { border-top-color: var(--cinnabar); }
@@ -1797,7 +1822,8 @@ select, .filter-select, .dup-object-select {
   position: fixed;
   bottom: 32px;
   left: 50%;
-  transform: translate(-50%, 24px);
+  /* Default (resting / exit) state — subtler than enter: drift up 8px, blur */
+  transform: translate(-50%, -8px);
   padding: 12px 20px;
   background: var(--surface);
   color: var(--ivory);
@@ -1807,14 +1833,16 @@ select, .filter-select, .dup-object-select {
   font-size: 13px;
   border-radius: 2px;
   opacity: 0;
+  filter: blur(4px);
   pointer-events: none;
   z-index: 1000;
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out), filter 180ms var(--ease-out);
   max-width: 480px;
 }
 .toast.show {
   opacity: 1;
   transform: translate(-50%, 0);
+  filter: blur(0);
   pointer-events: auto;
 }
 .toast.error   { border-top-color: var(--cinnabar); color: var(--ivory); }
