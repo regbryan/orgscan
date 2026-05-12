@@ -1105,6 +1105,73 @@ select, .filter-select, .dup-object-select {
   opacity: 0;
   transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), filter 160ms var(--ease-out);
 }
+
+/* Confirm-dialog variant — narrower card, cinnabar top-rule signals destructive. */
+.confirm-modal-card {
+  max-width: 480px;
+  border-top: 2px solid var(--cinnabar);
+}
+.confirm-modal-card .confirm-body-wrap {
+  padding: 26px 28px 4px;
+}
+.confirm-modal-card .confirm-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ivory);
+  margin: 0 0 14px;
+  letter-spacing: -0.005em;
+}
+.confirm-modal-card .confirm-body {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ivory-dim);
+  margin: 14px 0 0;
+  max-width: 50ch;
+}
+.confirm-modal-card .confirm-body strong { color: var(--ivory); font-weight: 500; }
+.confirm-modal-card .confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 28px 24px;
+  border-top: 1px solid var(--rule);
+  margin-top: 22px;
+}
+
+/* Org-context chip — labels the target org with prod/sandbox color signal. */
+.org-context-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  background: var(--surface-alt);
+  line-height: 1.3;
+}
+.org-context-chip .org-context-name {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--ivory-dim);
+}
+.org-context-chip.is-prod {
+  color: var(--cinnabar);
+  border-color: color-mix(in srgb, var(--cinnabar) 45%, transparent);
+  background: color-mix(in srgb, var(--cinnabar) 10%, var(--surface));
+}
+.org-context-chip.is-sandbox {
+  color: var(--parchment);
+  border-color: color-mix(in srgb, var(--parchment) 40%, transparent);
+}
 .modal-header {
   padding: 28px 32px;
   border-bottom: 1px solid var(--rule);

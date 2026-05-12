@@ -2134,16 +2134,110 @@
     return type + ' — ' + name;
   }
 
+  function orgContextChipHtml() {
+    const org = state.activeOrg;
+    if (!org) return '';
+    const url = org.instance_url || '';
+    const isSandbox = url.includes('sandbox') || url.includes('--');
+    const cls = isSandbox ? 'is-sandbox' : 'is-prod';
+    const label = isSandbox ? 'SANDBOX' : 'PRODUCTION';
+    const name = org.username || org.org_id || '';
+    return '<span class="org-context-chip ' + cls + '">' +
+      '<span>' + label + '</span>' +
+      (name ? '<span class="org-context-name">· ' + esc(name) + '</span>' : '') +
+    '</span>';
+  }
+
+  // Reusable destructive-action confirmation. Returns Promise<boolean>.
+  // Replaces window.confirm() for any action that mutates a Salesforce org —
+  // matches the Oxidized Plate spec, shows the target org's prod/sandbox
+  // status as the dominant signal, honors prefers-reduced-motion.
+  function confirmDangerous(opts) {
+    return new Promise(function (resolve) {
+      const title = opts.title || 'Confirm';
+      const body = opts.body || '';
+      const confirmLabel = opts.confirmLabel || 'Confirm';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML =
+        '<div class="modal-card confirm-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">' +
+          '<div class="confirm-body-wrap">' +
+            '<h3 class="confirm-title" id="confirm-title">' + esc(title) + '</h3>' +
+            orgContextChipHtml() +
+            (body ? '<p class="confirm-body">' + body + '</p>' : '') +
+          '</div>' +
+          '<div class="confirm-actions">' +
+            '<button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>' +
+            '<button type="button" class="btn btn-primary" data-act="confirm">' + esc(confirmLabel) + '</button>' +
+          '</div>' +
+        '</div>';
+
+      const reducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let settled = false;
+
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener('keydown', onKey);
+        if (reducedMotion) {
+          overlay.remove();
+          resolve(value);
+          return;
+        }
+        overlay.classList.remove('is-open');
+        overlay.classList.add('is-closing');
+        const card = overlay.querySelector('.modal-card');
+        let cleaned = false;
+        function cleanup() {
+          if (cleaned) return;
+          cleaned = true;
+          overlay.remove();
+          resolve(value);
+        }
+        if (card) {
+          card.addEventListener('transitionend', cleanup, { once: true });
+          setTimeout(cleanup, 240);
+        } else {
+          setTimeout(cleanup, 200);
+        }
+      }
+
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        else if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      }
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) { finish(false); return; }
+        const btn = e.target.closest('[data-act]');
+        if (!btn) return;
+        finish(btn.dataset.act === 'confirm');
+      });
+
+      document.body.appendChild(overlay);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          overlay.classList.add('is-open');
+          const cb = overlay.querySelector('[data-act="confirm"]');
+          if (cb) cb.focus();
+        });
+      });
+      document.addEventListener('keydown', onKey);
+    });
+  }
+
   async function writeDesc(flowApiName) {
     const ta = document.getElementById('desc-text-' + flowApiName);
     if (!ta) return;
     const description = ta.value.trim();
     if (!description) { showToast('Description cannot be empty', 'error'); return; }
-    const ok = confirm(
-      'Write AI description to flow "' + flowApiName + '"?\n\n' +
-      'Target org: ' + orgContextLabel() + '\n\n' +
-      'This modifies metadata in Salesforce and cannot be undone from OrgScan.'
-    );
+    const ok = await confirmDangerous({
+      title: 'Write AI description to flow ' + flowApiName + '?',
+      body: 'This modifies <strong>flow metadata in Salesforce</strong> and cannot be undone from OrgScan.',
+      confirmLabel: 'Write to Salesforce',
+    });
     if (!ok) return;
     try {
       const r = await fetch(API + '/flows/' + flowApiName + '/write-description', {
@@ -2376,11 +2470,12 @@
   }
 
   async function deleteDuplicateRecord(objectName, recordId, groupId, btn) {
-    if (!confirm(
-      'Permanently delete ' + objectName + ' record ' + recordId + '?\n\n' +
-      'Target org: ' + orgContextLabel() + '\n\n' +
-      'This cannot be undone.'
-    )) return;
+    const ok = await confirmDangerous({
+      title: 'Permanently delete ' + objectName + ' record ' + recordId + '?',
+      body: 'This <strong>deletes the record from Salesforce</strong>. The record cannot be recovered from OrgScan.',
+      confirmLabel: 'Delete Record',
+    });
+    if (!ok) return;
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-dark"></span>'; }
     try {
       const r = await fetch('/duplicates/records/' + objectName + '/' + recordId, { method: 'DELETE' })
