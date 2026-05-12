@@ -88,14 +88,6 @@
       .replace(/'/g, '&#39;');
   }
 
-  // Severity → left-border accent color for table rows
-  const SEV_ROW_COLOR = {
-    Critical: '#f87171',
-    Warning:  '#fbbf24',
-    Info:     '#6C8EFF',
-    Resolved: '#34d399',
-  };
-
   // Build the title cell: title is a link when a direct SF URL exists,
   // with a one-line recommendation hint underneath.
   function titleCell(f, globalIdx) {
@@ -288,7 +280,7 @@
       aiSection =
         '<div class="modal-section">' +
           '<div class="modal-section-label">AI Description</div>' +
-          '<p style="color:var(--text-muted);font-size:13px;margin:0 0 10px">Read this flow and generate a plain-English description of what it does.</p>' +
+          '<p style="color:var(--ivory-faint);font-size:13px;margin:0 0 10px">Read this flow and generate a plain-English description of what it does.</p>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           '<button class="btn btn-secondary btn-sm" id="modalGenDescBtn" style="display:inline-flex;align-items:center;gap:6px">' +
             I.sparkle + ' Generate Description' +
@@ -298,7 +290,7 @@
           '</button>' +
           '</div>' +
           '<div id="modalDescArea" style="display:none;margin-top:12px">' +
-            '<textarea id="modalDescText" style="width:100%;min-height:180px;border-radius:8px;border:1px solid var(--border);padding:10px;font-size:13px;font-family:inherit;resize:vertical" placeholder="AI-generated description and recommendations will appear here\u2026"></textarea>' +
+            '<textarea id="modalDescText" style="width:100%;min-height:180px;border-radius:8px;border:1px solid var(--rule);padding:10px;font-size:13px;font-family:inherit;resize:vertical" placeholder="AI-generated description and recommendations will appear here\u2026"></textarea>' +
             '<div style="display:flex;gap:8px;margin-top:8px">' +
               '<button class="btn btn-success btn-sm" id="modalWriteDescBtn">' + I.pen + ' Write to Salesforce</button>' +
               '<button class="btn btn-secondary btn-sm" id="modalCancelDescBtn">Cancel</button>' +
@@ -592,7 +584,7 @@
     }
 
     // Health card (dark navy, large gauge)
-    const col = score != null ? gaugeColor(score) : '#6C8EFF';
+    const col = score != null ? gaugeColor(score) : 'var(--info)';
     const healthCard = '<div class="dash-health-card">' +
       '<div class="dash-health-hdr">OVERALL ORG HEALTH</div>' +
       (score != null ? buildLargeGauge(score) : '<div class="dash-gauge-empty">—</div>') +
@@ -603,29 +595,40 @@
         '</div>' +
         '<div class="dash-stat-div"></div>' +
         '<div class="dash-stat">' +
-          '<div class="dash-stat-num" style="color:#f87171">' + cnt.Critical + '</div>' +
+          '<div class="dash-stat-num" style="color:var(--cinnabar)">' + cnt.Critical + '</div>' +
           '<div class="dash-stat-lbl">CRITICAL</div>' +
         '</div>' +
       '</div>' +
     '</div>';
 
-    // Critical + Warning metric cards
-    const critCard = '<div class="card dash-mc dash-mc-crit">' +
-      '<div class="dash-mc-lbl">CRITICAL FINDINGS</div>' +
-      '<div class="dash-mc-num">' + String(cnt.Critical).padStart(2, '0') + '</div>' +
-      '<div class="dash-mc-foot">' +
-        '<span class="dash-mc-icon-wrap">' + I.shieldSm + '</span>' +
-        '<span>Requires immediate attention</span>' +
-      '</div>' +
-    '</div>';
-
-    const warnCard = '<div class="card dash-mc dash-mc-warn">' +
-      '<div class="dash-mc-lbl">ACTIVE WARNINGS</div>' +
-      '<div class="dash-mc-num">' + String(cnt.Warning).padStart(2, '0') + '</div>' +
-      '<div class="dash-mc-foot">' +
-        '<span>' + cnt.Info + ' informational</span>' +
-      '</div>' +
-    '</div>';
+    // Top-3 findings per severity — name problems, don't just count them.
+    // "Findings, not vibes" (PRODUCT.md principle 2).
+    function topFindingsCard(severity, label, accentClass) {
+      const items = findings.filter(f => f.severity === severity).slice(0, 3);
+      const total = cnt[severity] || 0;
+      const list = items.length === 0
+        ? '<div class="dash-mc-empty mono">None</div>'
+        : '<ol class="dash-mc-list">' + items.map((f, i) => {
+            const idx = findings.indexOf(f);
+            return '<li class="dash-mc-item" data-finding-idx="' + idx + '">' +
+              '<span class="dash-mc-item-n num">' + String(i + 1).padStart(2, '0') + '</span>' +
+              '<span class="dash-mc-item-title">' + esc(f.title) + '</span>' +
+            '</li>';
+          }).join('') + '</ol>';
+      const moreLink = total > items.length
+        ? '<button class="dash-mc-more" data-action="dashMore" data-sev="' + severity + '">View all ' + total + ' &rarr;</button>'
+        : '';
+      return '<div class="card dash-mc ' + accentClass + '">' +
+        '<div class="dash-mc-head">' +
+          '<span class="dash-mc-lbl">' + label + '</span>' +
+          '<span class="dash-mc-count num">' + String(total).padStart(2, '0') + '</span>' +
+        '</div>' +
+        list +
+        moreLink +
+      '</div>';
+    }
+    const critCard = topFindingsCard('Critical', 'CRITICAL FINDINGS', 'dash-mc-crit');
+    const warnCard = topFindingsCard('Warning',  'ACTIVE WARNINGS',   'dash-mc-warn');
 
     // Category breakdown table
     const cc = catCounts();
@@ -643,7 +646,7 @@
     const catRows = CATEGORIES.map(cat => {
       const info = cc[cat];
       const sc = catSevCounts[cat];
-      const statusCol = sc.critical > 0 ? '#fd5454' : sc.warning > 0 ? '#fcbe2d' : info.total > 0 ? '#00b69b' : '#b0b8c4';
+      const statusCol = sc.critical > 0 ? 'var(--cinnabar)' : sc.warning > 0 ? 'var(--persimmon)' : info.total > 0 ? 'var(--verdigris)' : 'var(--rule-strong)';
       const statusLbl = sc.critical > 0 ? 'Critical' : sc.warning > 0 ? 'Warning' : info.total > 0 ? 'OK' : 'Clear';
       const badges =
         (sc.critical > 0 ? '<span class="dash-cbadge dash-cbadge-crit">' + sc.critical + ' critical</span>' : '') +
@@ -652,7 +655,7 @@
       return '<tr>' +
         '<td class="dash-cat-name">' + cat + '</td>' +
         '<td class="dash-cat-total">' + info.total + '</td>' +
-        '<td class="dash-cat-badges">' + (badges || '<span style="color:var(--text-muted);font-size:12px">—</span>') + '</td>' +
+        '<td class="dash-cat-badges">' + (badges || '<span style="color:var(--ivory-faint);font-size:12px">—</span>') + '</td>' +
         '<td><span class="dash-cat-status"><span class="dash-cat-dot" style="background:' + statusCol + '"></span>' + statusLbl + '</span></td>' +
       '</tr>';
     }).join('');
@@ -684,7 +687,7 @@
       const totalScanned  = dupKeys.reduce((s, k) => s + (dupHistory[k].records_scanned || 0), 0);
       const overallPct = totalScanned > 0 ? ((totalAffected / totalScanned) * 100).toFixed(1) : '0.0';
       const pctNum = parseFloat(overallPct);
-      const pctColor = pctNum === 0 ? '#00b69b' : pctNum < 5 ? '#fcbe2d' : '#fd5454';
+      const pctColor = pctNum === 0 ? 'var(--verdigris)' : pctNum < 5 ? 'var(--persimmon)' : 'var(--cinnabar)';
       const pctLabel = pctNum === 0 ? 'Clean' : pctNum < 5 ? 'Low Risk' : pctNum < 20 ? 'Moderate' : 'High Risk';
 
       const miniCards = dupKeys.map(k => {
@@ -692,7 +695,7 @@
         const sc = h.records_scanned || 0;
         const aff = h.total_records || 0;
         const p = sc > 0 ? Math.min(100, (aff / sc) * 100) : 0;
-        const col = p === 0 ? '#00b69b' : p < 5 ? '#fcbe2d' : '#fd5454';
+        const col = p === 0 ? 'var(--verdigris)' : p < 5 ? 'var(--persimmon)' : 'var(--cinnabar)';
         return '<div class="dup-mini-row">' +
           '<span class="dup-mini-label">' + esc(h.label) + '</span>' +
           '<div class="dup-mini-bar"><div class="dup-mini-fill" style="width:' + Math.max(p, p > 0 ? 2 : 0) + '%;background:' + col + '"></div></div>' +
@@ -710,7 +713,7 @@
             '<div class="dup-dash-pct" style="color:' + pctColor + '">' + overallPct + '%</div>' +
             '<div class="dup-dash-lbl">' +
               '<div class="dup-dash-status" style="color:' + pctColor + '">' + pctLabel + '</div>' +
-              '<div style="font-size:12px;color:var(--text-muted)">' + totalAffected + ' of ' + totalScanned + ' records affected</div>' +
+              '<div style="font-size:12px;color:var(--ivory-faint)">' + totalAffected + ' of ' + totalScanned + ' records affected</div>' +
             '</div>' +
           '</div>' +
           miniCards +
@@ -742,11 +745,10 @@
 
     const cols = isFlows ? 4 : 3;
     const rows = filtered.length === 0
-      ? '<tr><td colspan="' + cols + '" style="padding:40px;text-align:center;color:var(--text-muted)">No ' +
+      ? '<tr><td colspan="' + cols + '" style="padding:40px;text-align:center;color:var(--ivory-faint)">No ' +
           (filt === 'All' ? '' : filt + ' ') + 'findings in ' + cat + '.</td></tr>'
       : filtered.map(f => {
           const globalIdx = state.findings.indexOf(f);
-          const rowAccent = SEV_ROW_COLOR[f.severity] || 'var(--border-color)';
           let flowHtml = '';
           if (isFlows) {
             if (f.flow_api_name && f.severity !== 'Resolved') {
@@ -766,10 +768,10 @@
                   '</div>' +
                 '</div>';
             } else if (f.severity === 'Resolved') {
-              flowHtml = '<span style="color:var(--success);font-weight:700">\u2713 Resolved</span>';
+              flowHtml = '<span style="color:var(--verdigris);font-weight:700">\u2713 Resolved</span>';
             }
           }
-          return '<tr style="border-left:3px solid ' + rowAccent + '">' +
+          return '<tr>' +
             '<td style="white-space:nowrap;vertical-align:top;padding-top:14px">' + severityBadge(f.severity) + '</td>' +
             titleCell(f, globalIdx) +
             '<td style="white-space:nowrap;text-align:right;vertical-align:top;padding-top:14px">' +
@@ -838,7 +840,7 @@
           const isSuccess = e.status === 'Success';
           const isFailed  = e.status === 'Failed';
           const statusPill = isFailed
-            ? '<span class="finding-status-pill" style="background:rgba(253,84,84,0.1);color:#f87171">&#10005; Failed</span>'
+            ? '<span class="finding-status-pill" style="background:color-mix(in srgb,var(--cinnabar) 12%,var(--surface));color:var(--cinnabar)">&#10005; Failed</span>'
             : isSuccess
             ? '<span class="finding-status-pill status-resolved">&#10003; Success</span>'
             : '<span class="finding-status-pill status-open">' + esc(e.status) + '</span>';
@@ -872,7 +874,7 @@
         const shield  = events.filter(e => e.event_type === 'Shield');
 
         function evtTable(rows, cols, empty) {
-          if (!rows.length) return '<div class="empty-state" style="padding:32px;text-align:center;color:var(--text-muted)">' + empty + '</div>';
+          if (!rows.length) return '<div class="empty-state" style="padding:32px;text-align:center;color:var(--ivory-faint)">' + empty + '</div>';
           return '<div class="table-wrapper"><table class="dash-table">' +
             '<thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead>' +
             '<tbody>' + rows + '</tbody></table></div>';
@@ -1064,7 +1066,7 @@
     }).join('');
 
     const shieldNote = shield.length
-      ? '<div class="info-banner" style="margin-top:16px;padding:12px 16px;background:var(--primary-light,#eaf0ff);border-radius:8px;color:var(--primary)">' +
+      ? '<div class="info-banner" style="margin-top:16px;padding:12px 16px;background:var(--surface-alt);border:1px solid var(--rule);border-radius:2px;color:var(--ivory)">' +
           '<strong>Salesforce Shield detected</strong> — ' + shield.length + ' event log file(s) available. ' +
           'Download from Setup &rsaquo; Event Log Files for detailed user-level data access records.' +
         '</div>'
@@ -1139,10 +1141,9 @@
       : '';
 
     const rows = filtered.length === 0
-      ? '<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--text-muted)">No findings match the selected filters.</td></tr>'
+      ? '<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--ivory-faint)">No findings match the selected filters.</td></tr>'
       : filtered.map(f => {
           const globalIdx = findings.indexOf(f);
-          const rowAccent = SEV_ROW_COLOR[f.severity] || 'var(--border-color)';
           const isFlow = f.category === 'Flows' && f.flow_api_name && f.severity !== 'Resolved';
           const flowHtml = isFlow
             ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">' +
@@ -1161,7 +1162,7 @@
             ? '<span class="finding-status-pill status-resolved">&#10003; Resolved</span>'
             : '<span class="finding-status-pill status-open">&#9679; Open</span>';
 
-          return '<tr style="border-left:3px solid ' + rowAccent + '">' +
+          return '<tr>' +
             '<td style="white-space:nowrap;vertical-align:top;padding-top:14px">' +
               severityBadge(f.severity) +
               '<br><span class="muted" style="font-size:11px;display:block;margin-top:4px;text-align:center">' + esc(f.category) + '</span>' +
@@ -1266,7 +1267,7 @@
         const totalScanned  = keys.reduce((s, k) => s + (history[k].records_scanned || 0), 0);
         const overallPct = totalScanned > 0 ? ((totalAffected / totalScanned) * 100).toFixed(1) : '0.0';
         const pctNum = parseFloat(overallPct);
-        const pctColor = pctNum === 0 ? 'var(--success)' : pctNum < 5 ? '#fcbe2d' : 'var(--danger)';
+        const pctColor = pctNum === 0 ? 'var(--verdigris)' : pctNum < 5 ? 'var(--persimmon)' : 'var(--cinnabar)';
 
         const summaryBanner = '<div class="dup-ov-summary">' +
           '<div class="dup-ov-sum-item">' +
@@ -1296,7 +1297,7 @@
           const affected = h.total_records || 0;
           const pct = scanned > 0 ? Math.min(100, (affected / scanned) * 100) : 0;
           const pctStr = pct.toFixed(1);
-          const col = pct === 0 ? 'var(--success)' : pct < 5 ? '#fcbe2d' : 'var(--danger)';
+          const col = pct === 0 ? 'var(--verdigris)' : pct < 5 ? 'var(--persimmon)' : 'var(--cinnabar)';
           const statusLbl = pct === 0 ? 'Clean' : pct < 5 ? 'Low' : pct < 20 ? 'Moderate' : 'High';
           const isCrossCard = h.type === 'cross';
 
@@ -1421,10 +1422,10 @@
         '</div>' +
         (!isCross
           ? '<div class="card dup-info-card"><div class="card-body"><div class="dup-info-grid">' +
-              '<div class="dup-info-item"><div class="dup-info-icon" style="color:var(--primary)">' + I.merge + '</div>' +
+              '<div class="dup-info-item"><div class="dup-info-icon" style="color:var(--cinnabar)">' + I.merge + '</div>' +
               '<div><div class="dup-info-title">Custom Mode</div>' +
               '<div class="dup-info-desc">OrgScan pulls up to 5,000 records and groups them by normalized field values. Works on any org.</div></div></div>' +
-              '<div class="dup-info-item"><div class="dup-info-icon" style="color:var(--success)">' + I.shieldSm + '</div>' +
+              '<div class="dup-info-item"><div class="dup-info-icon" style="color:var(--verdigris)">' + I.shieldSm + '</div>' +
               '<div><div class="dup-info-title">Native Mode</div>' +
               '<div class="dup-info-desc">Reads DuplicateRecordSet objects from Salesforce\'s own active duplicate rules.</div></div></div>' +
             '</div></div></div>'
@@ -1571,7 +1572,7 @@
                 '<td style="text-align:right">' +
                   (!isMaster
                     ? '<button class="btn btn-danger btn-sm dup-delete-btn" data-object="' + esc(g.object_name) + '" data-id="' + esc(r.Id) + '" data-gid="' + g.group_id + '">' + I.trash + ' Delete</button>'
-                    : '<span style="color:var(--text-muted);font-size:12px">Keep</span>') +
+                    : '<span style="color:var(--ivory-faint);font-size:12px">Keep</span>') +
                 '</td>' +
               '</tr>';
             }).join('') : '';
@@ -1675,8 +1676,8 @@
           '<span class="stg-score-num" style="color:' + scoreCol + '">' + score + '</span>' +
           '<span class="stg-score-lbl">/ 100</span>' +
         '</div>'
-      : '<div class="stg-score-ring" style="--ring-col:#b0b8c4;--ring-pct:0%">' +
-          '<span class="stg-score-num" style="color:var(--text-muted)">—</span>' +
+      : '<div class="stg-score-ring" style="--ring-col:var(--rule-strong);--ring-pct:0%">' +
+          '<span class="stg-score-num" style="color:var(--ivory-faint)">—</span>' +
         '</div>';
 
     const profileCard = '<div class="card stg-profile-card">' +
@@ -1700,7 +1701,7 @@
             '<span class="stg-sbd stg-sbd-crit">' + cnt.Critical + ' critical</span>' +
             '<span class="stg-sbd stg-sbd-warn">' + cnt.Warning + ' warnings</span>' +
             '<span class="stg-sbd stg-sbd-info">' + cnt.Info + ' info</span>' +
-          '</div>' : '<div class="stg-score-breakdown" style="color:var(--text-muted);font-size:12px">Run a scan to calculate score</div>') +
+          '</div>' : '<div class="stg-score-breakdown" style="color:var(--ivory-faint);font-size:12px">Run a scan to calculate score</div>') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1733,8 +1734,8 @@
             '<div class="stg-info-label">Scan Status</div>' +
             '<div class="stg-info-value">' +
               (findings.length > 0
-                ? '<span style="color:var(--success)">&#10003; Last scan: ' + findings.length + ' findings</span>'
-                : '<span style="color:var(--text-muted)">No scan run yet</span>') +
+                ? '<span style="color:var(--verdigris)">&#10003; Last scan: ' + findings.length + ' findings</span>'
+                : '<span style="color:var(--ivory-faint)">No scan run yet</span>') +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -2097,11 +2098,26 @@
     }
   }
 
+  function orgContextLabel() {
+    const org = state.activeOrg;
+    if (!org) return 'the connected org';
+    const url = org.instance_url || '';
+    const type = (url.includes('sandbox') || url.includes('--')) ? 'SANDBOX' : 'PRODUCTION';
+    const name = org.username || org.org_id || 'unknown';
+    return type + ' — ' + name;
+  }
+
   async function writeDesc(flowApiName) {
     const ta = document.getElementById('desc-text-' + flowApiName);
     if (!ta) return;
     const description = ta.value.trim();
     if (!description) { showToast('Description cannot be empty', 'error'); return; }
+    const ok = confirm(
+      'Write AI description to flow "' + flowApiName + '"?\n\n' +
+      'Target org: ' + orgContextLabel() + '\n\n' +
+      'This modifies metadata in Salesforce and cannot be undone from OrgScan.'
+    );
+    if (!ok) return;
     try {
       const r = await fetch(API + '/flows/' + flowApiName + '/write-description', {
         method: 'POST',
@@ -2333,7 +2349,11 @@
   }
 
   async function deleteDuplicateRecord(objectName, recordId, groupId, btn) {
-    if (!confirm('Permanently delete record ' + recordId + ' from Salesforce? This cannot be undone.')) return;
+    if (!confirm(
+      'Permanently delete ' + objectName + ' record ' + recordId + '?\n\n' +
+      'Target org: ' + orgContextLabel() + '\n\n' +
+      'This cannot be undone.'
+    )) return;
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner-dark"></span>'; }
     try {
       const r = await fetch('/duplicates/records/' + objectName + '/' + recordId, { method: 'DELETE' })
@@ -2393,14 +2413,26 @@
   // Registered once here rather than inside bindEvents() to avoid accumulation.
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.finding-expand-btn');
-    if (!btn) return;
-    const idx = btn.dataset.idx;
-    const extra = document.getElementById('fde-' + idx);
-    if (!extra) return;
-    const open = extra.style.display !== 'none';
-    extra.style.display = open ? 'none' : 'block';
-    const lineCount = extra.querySelectorAll('li').length;
-    btn.textContent = open ? '+' + lineCount + ' more' : 'less';
+    if (btn) {
+      const idx = btn.dataset.idx;
+      const extra = document.getElementById('fde-' + idx);
+      if (!extra) return;
+      const open = extra.style.display !== 'none';
+      extra.style.display = open ? 'none' : 'block';
+      const lineCount = extra.querySelectorAll('li').length;
+      btn.textContent = open ? '+' + lineCount + ' more' : 'less';
+      return;
+    }
+    const dashItem = e.target.closest('.dash-mc-item');
+    if (dashItem) {
+      const i = parseInt(dashItem.dataset.findingIdx, 10);
+      if (!isNaN(i)) showFinding(i);
+      return;
+    }
+    const moreBtn = e.target.closest('[data-action="dashMore"]');
+    if (moreBtn) {
+      navigate('findings');
+    }
   });
 
   init();

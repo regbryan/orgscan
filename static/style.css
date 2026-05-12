@@ -520,7 +520,8 @@ select, .filter-select, .dup-object-select {
   color: var(--info);
 }
 .badge-success,
-.badge-pass {
+.badge-pass,
+.badge-resolved {
   background: color-mix(in srgb, var(--verdigris) 14%, var(--surface));
   border-color: color-mix(in srgb, var(--verdigris) 42%, transparent);
   color: var(--verdigris);
@@ -642,53 +643,112 @@ select, .filter-select, .dup-object-select {
   color: var(--ivory-faint);
 }
 
-/* Dashboard metric cards (critical / warn rows) */
+/* Dashboard metric cards — name the problems, don't just count them. */
 .dash-mc {
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: 2px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
-.dash-mc-row { display: flex; align-items: center; gap: 14px; }
-.dash-mc-icon-wrap {
-  width: 38px; height: 38px;
-  border-radius: 2px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--rule-strong);
-  background: var(--surface-alt);
-  color: var(--ivory-dim);
-}
-.dash-mc-crit .dash-mc-icon-wrap { color: var(--cinnabar); border-color: color-mix(in srgb, var(--cinnabar) 45%, transparent); }
-.dash-mc-warn .dash-mc-icon-wrap { color: var(--persimmon); border-color: color-mix(in srgb, var(--persimmon) 45%, transparent); }
-.dash-mc-num {
-  font-family: var(--font-mono);
-  font-size: 38px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ivory);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'zero', 'tnum', 'ss02';
+.dash-mc-row { display: flex; align-items: stretch; gap: 14px; }
+.dash-mc-row > .dash-mc { flex: 1; min-width: 0; }
+
+.dash-mc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 10px;
 }
 .dash-mc-lbl {
   font-family: var(--font-mono);
   font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ivory-dim);
-  margin-top: 4px;
 }
-.dash-mc-foot {
+.dash-mc-crit .dash-mc-lbl { color: var(--cinnabar); }
+.dash-mc-warn .dash-mc-lbl { color: var(--persimmon); }
+.dash-mc-count {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ivory);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-mc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dash-mc-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--rule);
+  transition: color 120ms ease;
+}
+.dash-mc-item:last-child { border-bottom: none; }
+.dash-mc-item:hover .dash-mc-item-title { color: var(--parchment); }
+.dash-mc-item-n {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--parchment);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  min-width: 16px;
+}
+.dash-mc-item-title {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ivory);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: color 120ms ease;
+}
+
+.dash-mc-empty {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+  padding: 8px 0;
+}
+
+.dash-mc-more {
+  background: transparent;
+  border: none;
+  color: var(--ivory-dim);
   font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--ivory-faint);
-  letter-spacing: 0.04em;
-  padding-top: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 10px 0 0;
+  margin-top: 6px;
   border-top: 1px solid var(--rule);
+  cursor: pointer;
+  text-align: left;
+  transition: color 120ms ease;
 }
+.dash-mc-more:hover { color: var(--ivory); }
 
 /* Dashboard category table */
 .dash-cat-table {
@@ -1077,7 +1137,8 @@ select, .filter-select, .dup-object-select {
 
 .modal-rec-callout {
   background: var(--surface-alt);
-  border-left: 3px solid var(--parchment);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--parchment);
   padding: 18px 22px;
   margin: 0;
 }
@@ -1103,7 +1164,7 @@ select, .filter-select, .dup-object-select {
 .desc-area {
   background: var(--surface-alt);
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--info);
+  border-top: 2px solid var(--info);
   padding: 12px 14px;
   margin-top: 10px;
   color: var(--ivory);
@@ -1236,7 +1297,8 @@ select, .filter-select, .dup-object-select {
 
 .dup-mode-info {
   background: var(--surface-alt);
-  border-left: 3px solid var(--info);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--info);
   padding: 10px 14px;
   margin-top: 10px;
   font-size: 12.5px;
@@ -1314,7 +1376,8 @@ select, .filter-select, .dup-object-select {
   font-size: 13px;
   margin: 0 32px 20px;
   padding: 12px 16px;
-  border-left: 3px solid var(--parchment);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--parchment);
   background: var(--surface-alt);
 }
 
@@ -1623,7 +1686,7 @@ select, .filter-select, .dup-object-select {
   margin: 20px 32px;
   padding: 14px 18px;
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--parchment);
+  border-top: 2px solid var(--parchment);
   background: var(--surface-alt);
   color: var(--ivory);
   font-size: 13px;
@@ -1673,7 +1736,7 @@ select, .filter-select, .dup-object-select {
   margin: 16px 32px;
   padding: 14px 18px;
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--info);
+  border-top: 2px solid var(--info);
   background: var(--surface-alt);
   color: var(--ivory);
   font-size: 13px;
@@ -1708,7 +1771,7 @@ select, .filter-select, .dup-object-select {
 .inline-error {
   padding: 12px 16px;
   border: 1px solid color-mix(in srgb, var(--cinnabar) 45%, transparent);
-  border-left: 3px solid var(--cinnabar);
+  border-top: 2px solid var(--cinnabar);
   background: color-mix(in srgb, var(--cinnabar) 9%, var(--surface));
   color: var(--cinnabar);
   font-size: 13px;
@@ -1739,7 +1802,7 @@ select, .filter-select, .dup-object-select {
   background: var(--surface);
   color: var(--ivory);
   border: 1px solid var(--rule-strong);
-  border-left: 3px solid var(--parchment);
+  border-top: 2px solid var(--parchment);
   font-family: var(--font-serif);
   font-size: 13px;
   border-radius: 2px;
@@ -1754,8 +1817,8 @@ select, .filter-select, .dup-object-select {
   transform: translate(-50%, 0);
   pointer-events: auto;
 }
-.toast.error   { border-left-color: var(--cinnabar); color: var(--ivory); }
-.toast.success { border-left-color: var(--verdigris); }
+.toast.error   { border-top-color: var(--cinnabar); color: var(--ivory); }
+.toast.success { border-top-color: var(--verdigris); }
 
 /* =====================================================================
    RESPONSIVE
@@ -1787,3 +1850,21 @@ select, .filter-select, .dup-object-select {
 ::-webkit-scrollbar-track { background: var(--base); }
 ::-webkit-scrollbar-thumb { background: var(--rule-strong); border: 2px solid var(--base); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--ivory-faint); }
+
+/* =====================================================================
+   REDUCED MOTION — honor user preference. State changes collapse to
+   opacity-only or instant. The spinner becomes a static dashed ring.
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .spinner, .spinner-dark {
+    animation: none !important;
+    border-style: dashed;
+  }
+}

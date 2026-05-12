@@ -2,83 +2,391 @@
 <html>
 <head>
 <meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 2cm; }
-  body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; }
-  h1 { color: {{ branding.primary_color }}; font-size: 24pt; margin-bottom: 4px; }
-  h2 { color: {{ branding.primary_color }}; font-size: 16pt; border-bottom: 2px solid {{ branding.primary_color }}; padding-bottom: 4px; margin-top: 32px; }
-  h3 { font-size: 13pt; color: #333; margin-top: 24px; }
-  .cover { text-align: center; margin-top: 80px; }
-  .cover .subtitle { font-size: 14pt; color: #555; }
-  .cards { display: flex; gap: 16px; margin: 20px 0; }
-  .card { flex: 1; padding: 16px; border-radius: 8px; text-align: center; }
-  .card.critical { background: #fee2e2; color: #991b1b; }
-  .card.warning { background: #fef9c3; color: #854d0e; }
-  .card.info { background: #dbeafe; color: #1e40af; }
-  .card.score { background: #dcfce7; color: #166534; }
-  .card .num { font-size: 28pt; font-weight: 900; }
-  .card .label { font-size: 9pt; }
-  .finding { border-left: 4px solid #ccc; padding: 8px 12px; margin-bottom: 10px; background: #fafafa; }
-  .finding.Critical { border-color: #dc2626; }
-  .finding.Warning { border-color: #d97706; }
-  .finding.Info { border-color: #3b82f6; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9pt; font-weight: 700; }
-  .badge.Critical { background: #fee2e2; color: #991b1b; }
-  .badge.Warning { background: #fef9c3; color: #854d0e; }
-  .badge.Info { background: #dbeafe; color: #1e40af; }
-  .recommendation { font-style: italic; color: #555; margin-top: 4px; font-size: 10pt; }
-  .narrative { background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0; }
+  /* =====================================================================
+     OrgScan — Audit Report (Oxidized Plate, paper substrate)
+     The screen is dark metal; the report is the paper it stamped.
+     ===================================================================== */
+
+  @page {
+    size: A4;
+    margin: 2cm 2cm 2.4cm;
+    @bottom-center {
+      content: "OrgScan  ·  " counter(page) " / " counter(pages);
+      font-family: 'Geist Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #6C6254;
+    }
+  }
+  @page :first { @bottom-center { content: none; } }
+
+  /* Mineral palette (same as the app, on paper) */
+  :root {
+    --paper:       #F5EFE3;
+    --paper-tint:  #EEE6D4;
+    --ink:         #141312;
+    --ink-soft:    #3D352D;
+    --ink-faint:   #6C6254;
+    --rule:        #C9BFA9;
+    --rule-strong: #A89A7D;
+    --cinnabar:    #B3402F;
+    --persimmon:   #B85020;
+    --slate-blue:  #5E7B95;
+    --verdigris:   #3F7567;
+    --parchment:   #8C7B4F;
+  }
+
+  body {
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+    font-feature-settings: 'zero', 'ss02';
+    margin: 0;
+  }
+
+  /* Type scale */
+  h1, h2, h3, h4 {
+    font-family: 'Geist', serif;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  h1 { font-size: 26pt; line-height: 1.05; letter-spacing: -0.02em; }
+  h2 {
+    font-size: 15pt;
+    line-height: 1.2;
+    margin-top: 28pt;
+    padding-bottom: 6pt;
+    border-bottom: 0.5pt solid var(--ink);
+    box-shadow: 0 2pt 0 0 var(--paper), 0 2.5pt 0 0 var(--rule-strong);
+  }
+  h2::before {
+    content: '§ ';
+    font-family: 'Geist Mono', monospace;
+    color: var(--parchment);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    font-size: 12pt;
+  }
+  h3 {
+    font-size: 11.5pt;
+    margin-top: 18pt;
+    margin-bottom: 4pt;
+    font-weight: 500;
+  }
+
+  .kicker {
+    font-family: 'Geist Mono', monospace;
+    font-size: 8.5pt;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'zero', 'tnum';
+  }
+
+  /* =====================================================================
+     COVER
+     ===================================================================== */
+  .cover {
+    margin-top: 6cm;
+    padding-bottom: 0;
+  }
+  .cover .ds-mark {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9pt;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--parchment);
+    margin-bottom: 28pt;
+  }
+  .cover h1 {
+    font-size: 34pt;
+    line-height: 1.02;
+    margin-bottom: 14pt;
+  }
+  .cover .cover-client {
+    font-size: 15pt;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0 0 6pt;
+  }
+  .cover .cover-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 9pt;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  .cover .cover-rule {
+    border-top: 0.5pt solid var(--ink);
+    margin-top: 36pt;
+    padding-top: 10pt;
+    box-shadow: 0 -3pt 0 0 var(--paper), 0 -3.5pt 0 0 var(--rule-strong);
+  }
+  .cover .cover-logo { max-height: 56px; margin-bottom: 28pt; }
+
+  /* =====================================================================
+     EXECUTIVE SUMMARY — metric blocks
+     ===================================================================== */
+  .metrics {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14pt 0 18pt;
+  }
+  .metric {
+    display: table-cell;
+    width: 25%;
+    padding: 14pt 14pt;
+    border: 0.5pt solid var(--rule);
+    border-right: none;
+    background: var(--paper);
+    vertical-align: top;
+  }
+  .metric:last-child { border-right: 0.5pt solid var(--rule); }
+
+  .metric-num {
+    font-family: 'Geist', serif;
+    font-size: 26pt;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-num.is-critical { color: var(--cinnabar); }
+  .metric-num.is-warning  { color: var(--persimmon); }
+  .metric-num.is-info     { color: var(--slate-blue); }
+  .metric-num.is-score    { color: var(--ink); }
+
+  .metric-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 8.5pt;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 8pt;
+    display: block;
+  }
+
+  .narrative {
+    margin: 14pt 0 0;
+    padding: 14pt 16pt;
+    background: var(--paper-tint);
+    border: 0.5pt solid var(--rule);
+    font-size: 10.5pt;
+    line-height: 1.6;
+  }
+
+  /* =====================================================================
+     FINDINGS — numbered clauses, no side-stripes
+     ===================================================================== */
+  .findings {
+    margin-top: 8pt;
+    border-top: 0.5pt solid var(--rule-strong);
+  }
+  .finding {
+    counter-increment: finding;
+    border-bottom: 0.5pt solid var(--rule);
+    padding: 10pt 0 12pt 36pt;
+    position: relative;
+    page-break-inside: avoid;
+  }
+  .finding::before {
+    content: counter(finding, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 12pt;
+    font-family: 'Geist Mono', monospace;
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: var(--parchment);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .finding-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10pt;
+    margin-bottom: 4pt;
+  }
+  .finding-title {
+    font-family: 'Geist', serif;
+    font-size: 11pt;
+    font-weight: 500;
+    color: var(--ink);
+    flex: 1;
+  }
+  .finding-detail {
+    font-size: 10pt;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 2pt 0 0;
+  }
+  .recommendation {
+    font-size: 9.5pt;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin-top: 6pt;
+    padding-left: 12pt;
+    border-left: 1pt solid var(--rule);
+  }
+  .recommendation::before {
+    content: 'ACTION  ';
+    font-family: 'Geist Mono', monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: var(--parchment);
+    margin-right: 4pt;
+  }
+
+  /* Category section resets the clause counter */
+  .category { counter-reset: finding; }
+
+  /* =====================================================================
+     SEVERITY BADGES — mono, hairline border, tinted ground
+     ===================================================================== */
+  .badge {
+    display: inline-block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 8pt;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 2pt 7pt;
+    border-radius: 1.5pt;
+    border: 0.5pt solid;
+    line-height: 1.2;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .badge.Critical { color: var(--cinnabar);   border-color: var(--cinnabar);   background: #F0DDD7; }
+  .badge.Warning  { color: var(--persimmon);  border-color: var(--persimmon);  background: #F1DDCB; }
+  .badge.Info     { color: var(--slate-blue); border-color: var(--slate-blue); background: #DCE3EB; }
+  .badge.Pass,
+  .badge.Resolved { color: var(--verdigris);  border-color: var(--verdigris);  background: #D7E3DE; }
+
+  /* =====================================================================
+     APPENDIX (AI flow descriptions)
+     ===================================================================== */
+  .appendix h3 {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10.5pt;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    margin-top: 18pt;
+    margin-bottom: 4pt;
+  }
+  .appendix p {
+    font-size: 10.5pt;
+    line-height: 1.55;
+    margin: 0 0 8pt;
+  }
+
+  /* =====================================================================
+     UTILITY
+     ===================================================================== */
   .page-break { page-break-before: always; }
-  .footer { margin-top: 48px; font-size: 9pt; color: #999; text-align: center; }
+  .mono { font-family: 'Geist Mono', monospace; }
 </style>
 </head>
 <body>
 
-<!-- Cover Page -->
+<!-- =====================================================================
+     COVER
+     ===================================================================== -->
 <div class="cover">
   {% if branding.logo_path %}
-  <img src="{{ branding.logo_path }}" style="max-height:80px; margin-bottom:24px;" alt="Logo">
+  <img src="{{ branding.logo_path }}" class="cover-logo" alt="">
   {% endif %}
-  <h1>Salesforce Org Health Assessment</h1>
-  <p class="subtitle">{{ client_name }}</p>
-  <p class="subtitle" style="color:#999; font-size:11pt;">{{ date }} &nbsp;|&nbsp; Prepared by {{ branding.consultant_name }}</p>
+  <div class="ds-mark">§ Salesforce Org Health Assessment</div>
+  <h1>Audit Report</h1>
+  <p class="cover-client">{{ client_name }}</p>
+  <div class="cover-rule">
+    <p class="cover-meta">{{ date }} &nbsp;·&nbsp; Prepared by {{ branding.consultant_name }}</p>
+  </div>
 </div>
 
-<!-- Executive Summary -->
+<!-- =====================================================================
+     EXECUTIVE SUMMARY
+     ===================================================================== -->
 <div class="page-break"></div>
 <h2>Executive Summary</h2>
-<div class="cards">
-  <div class="card critical"><div class="num">{{ counts.Critical }}</div><div class="label">Critical</div></div>
-  <div class="card warning"><div class="num">{{ counts.Warning }}</div><div class="label">Warnings</div></div>
-  <div class="card info"><div class="num">{{ counts.Info }}</div><div class="label">Informational</div></div>
-  <div class="card score"><div class="num">{{ score }}</div><div class="label">Health Score / 100</div></div>
+
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-num is-critical num">{{ counts.Critical }}</div>
+    <span class="metric-label">Critical</span>
+  </div>
+  <div class="metric">
+    <div class="metric-num is-warning num">{{ counts.Warning }}</div>
+    <span class="metric-label">Warnings</span>
+  </div>
+  <div class="metric">
+    <div class="metric-num is-info num">{{ counts.Info }}</div>
+    <span class="metric-label">Informational</span>
+  </div>
+  <div class="metric">
+    <div class="metric-num is-score num">{{ score }}<span style="font-size:13pt;color:var(--ink-faint);font-weight:400">/100</span></div>
+    <span class="metric-label">Health Score</span>
+  </div>
 </div>
+
 <div class="narrative">{{ narrative }}</div>
 
-<!-- Findings by Category -->
+<!-- =====================================================================
+     FINDINGS BY CATEGORY
+     ===================================================================== -->
 {% for category, category_findings in findings_by_category.items() %}
 <div class="page-break"></div>
 <h2>{{ category }}</h2>
-{% for f in category_findings %}
-<div class="finding {{ f.severity }}">
-  <span class="badge {{ f.severity }}">{{ f.severity }}</span>
-  <strong style="margin-left:8px;">{{ f.title }}</strong>
-  <p style="margin:4px 0;">{{ f.detail }}</p>
-  <p class="recommendation">→ {{ f.recommendation }}</p>
+<div class="category">
+  <p class="kicker" style="margin-bottom:10pt">{{ category_findings|length }} finding{% if category_findings|length != 1 %}s{% endif %} in this category</p>
+  <div class="findings">
+    {% for f in category_findings %}
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge {{ f.severity }}">{{ f.severity }}</span>
+        <span class="finding-title">{{ f.title }}</span>
+      </div>
+      <p class="finding-detail">{{ f.detail }}</p>
+      {% if f.recommendation %}
+      <p class="recommendation">{{ f.recommendation }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
 </div>
 {% endfor %}
-{% endfor %}
 
+<!-- =====================================================================
+     APPENDIX
+     ===================================================================== -->
 {% if flow_descriptions %}
-<!-- Appendix -->
 <div class="page-break"></div>
 <h2>Appendix — AI-Generated Flow Descriptions</h2>
-{% for item in flow_descriptions %}
-<h3>{{ item.flow_name }}</h3>
-<p>{{ item.description }}</p>
-{% endfor %}
+<div class="appendix">
+  {% for item in flow_descriptions %}
+  <h3>{{ item.flow_name }}</h3>
+  <p>{{ item.description }}</p>
+  {% endfor %}
+</div>
 {% endif %}
 
-<div class="footer">Generated by OrgScan &nbsp;|&nbsp; {{ branding.consultant_name }}</div>
 </body>
 </html>
