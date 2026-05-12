@@ -287,16 +287,23 @@ section > .container { max-width: 1100px; margin: 0 auto; }
   max-width: 38ch;
 }
 
-/* SVG mock — angled PDF cover + interior page */
+/* PDF mock — photograph of the report on a desk */
 .pdf-stage {
   position: relative;
   aspect-ratio: 5 / 4;
-  background: var(--surface);
+  background: var(--base);
   border: 1px solid var(--rule);
-  padding: 32px;
   overflow: hidden;
 }
-.pdf-stage svg { width: 100%; height: 100%; }
+.pdf-stage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pdf-stage::after {
+  /* hairline inner edge to seat the photo into the page */
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
 
 /* =====================================================================
    §3 — HOW IT WORKS
@@ -533,73 +540,7 @@ footer a:hover { color: var(--parchment); }
       </div>
 
       <div class="pdf-stage">
-        <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OrgScan audit report — cover and interior preview">
-          <!-- Interior page (behind, rotated slightly clockwise) -->
-          <g transform="translate(220 38) rotate(6)">
-            <rect width="240" height="320" fill="#F5EFE3" stroke="#A89A7D" stroke-width="0.6"/>
-            <!-- Header rule -->
-            <line x1="22" y1="48" x2="218" y2="48" stroke="#141312" stroke-width="0.6"/>
-            <line x1="22" y1="51" x2="218" y2="51" stroke="#A89A7D" stroke-width="0.6"/>
-            <!-- § + heading -->
-            <text x="22" y="42" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="11" font-weight="600">§</text>
-            <text x="34" y="42" fill="#141312" font-family="Geist, sans-serif" font-size="13" font-weight="500">Flows</text>
-            <text x="22" y="68" fill="#6C6254" font-family="Geist Mono, monospace" font-size="6.5" letter-spacing="1.4">12 FINDINGS IN THIS CATEGORY</text>
-            <!-- Finding 01 -->
-            <text x="22" y="90" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">01</text>
-            <rect x="40" y="82" width="42" height="11" fill="#F0DDD7" stroke="#B3402F" stroke-width="0.4" rx="1"/>
-            <text x="61" y="90" fill="#B3402F" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">CRITICAL</text>
-            <text x="88" y="90" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Hard-coded record ID in Lead_Routing_v3</text>
-            <text x="88" y="100" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">A 15-char Id sits in the assignment decision node.</text>
-            <text x="88" y="113" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="5.5" font-weight="600" letter-spacing="1.2">ACTION</text>
-            <text x="113" y="113" fill="#3D352D" font-family="Geist, sans-serif" font-size="6" font-style="italic">Replace with a custom-metadata lookup.</text>
-            <line x1="22" y1="124" x2="218" y2="124" stroke="#C9BFA9" stroke-width="0.4"/>
-            <!-- Finding 02 -->
-            <text x="22" y="142" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">02</text>
-            <rect x="40" y="134" width="44" height="11" fill="#F1DDCB" stroke="#B85020" stroke-width="0.4" rx="1"/>
-            <text x="62" y="142" fill="#B85020" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">WARNING</text>
-            <text x="90" y="142" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Flow API version 52.0 — below platform min</text>
-            <text x="90" y="152" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">Account_AssignTerritory was last updated 2024-08.</text>
-            <line x1="22" y1="164" x2="218" y2="164" stroke="#C9BFA9" stroke-width="0.4"/>
-            <!-- Finding 03 -->
-            <text x="22" y="182" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">03</text>
-            <rect x="40" y="174" width="32" height="11" fill="#D7E3DE" stroke="#3F7567" stroke-width="0.4" rx="1"/>
-            <text x="56" y="182" fill="#3F7567" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">PASS</text>
-            <text x="78" y="182" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Description written for Lead_Assignment_v3</text>
-            <text x="78" y="192" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">AI-generated, pushed to Salesforce 2026-05-12.</text>
-            <line x1="22" y1="204" x2="218" y2="204" stroke="#C9BFA9" stroke-width="0.4"/>
-            <!-- Filler lines -->
-            <text x="22" y="222" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">04</text>
-            <line x1="40" y1="220" x2="180" y2="220" stroke="#3D352D" stroke-width="0.3"/>
-            <line x1="40" y1="226" x2="200" y2="226" stroke="#A89A7D" stroke-width="0.3"/>
-            <text x="22" y="248" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">05</text>
-            <line x1="40" y1="246" x2="170" y2="246" stroke="#3D352D" stroke-width="0.3"/>
-            <line x1="40" y1="252" x2="195" y2="252" stroke="#A89A7D" stroke-width="0.3"/>
-            <!-- Footer kicker -->
-            <text x="120" y="305" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5.5" letter-spacing="1.2" text-anchor="middle">ORGSCAN  ·  4 / 12</text>
-          </g>
-
-          <!-- Cover (in front, rotated slightly counter-clockwise) -->
-          <g transform="translate(40 60) rotate(-4)">
-            <rect width="240" height="320" fill="#F5EFE3" stroke="#3D352D" stroke-width="0.7"/>
-            <!-- Cover mark -->
-            <text x="22" y="56" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="6.5" letter-spacing="2">§  SALESFORCE  ORG  HEALTH  ASSESSMENT</text>
-            <!-- Title -->
-            <text x="22" y="148" fill="#141312" font-family="Geist, sans-serif" font-size="30" font-weight="500" letter-spacing="-0.8">Audit</text>
-            <text x="22" y="178" fill="#141312" font-family="Geist, sans-serif" font-size="30" font-weight="500" letter-spacing="-0.8">Report</text>
-            <!-- Client -->
-            <text x="22" y="210" fill="#141312" font-family="Geist, sans-serif" font-size="11" font-weight="500">Acme Corporation</text>
-            <!-- Double rule -->
-            <line x1="22" y1="248" x2="218" y2="248" stroke="#141312" stroke-width="0.5"/>
-            <line x1="22" y1="251" x2="218" y2="251" stroke="#A89A7D" stroke-width="0.5"/>
-            <!-- Meta -->
-            <text x="22" y="266" fill="#6C6254" font-family="Geist Mono, monospace" font-size="6" letter-spacing="1.4">MAY 2026  ·  PREPARED BY REGGIE BRYANT</text>
-            <!-- Footer score block -->
-            <rect x="22" y="284" width="44" height="22" fill="none" stroke="#C9BFA9" stroke-width="0.5"/>
-            <text x="29" y="298" fill="#B3402F" font-family="Geist, sans-serif" font-size="14" font-weight="500">07</text>
-            <text x="50" y="294" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5" letter-spacing="0.9">CRITICAL</text>
-            <text x="50" y="302" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5" letter-spacing="0.9">FINDINGS</text>
-          </g>
-        </svg>
+        <img src="/static/marketing-pdf-mock.webp" alt="OrgScan audit report — cover page (Audit Report / Acme Corporation / 07 CRITICAL FINDINGS stamp) layered over an interior Flows section showing numbered findings with mineral severity badges." width="1152" height="928" loading="lazy" decoding="async">
       </div>
     </div>
   </div>
