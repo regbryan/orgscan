@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OrgScan — Audit any Salesforce org in under an hour</title>
+<meta name="description" content="OrgScan finds the dead users, undocumented flows, and hard-coded record IDs your client doesn't know about — then writes the client-ready audit report.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --base:         #141312;
+  --surface:      #1C1A17;
+  --surface-alt:  #241F1A;
+  --surface-lift: #2A241E;
+  --rule:         #2E2822;
+  --rule-strong:  #3D352D;
+  --ivory:        #E8DFC9;
+  --ivory-dim:    #A89A7D;
+  --ivory-faint:  #6C6254;
+  --cinnabar:       #C14A3D;
+  --cinnabar-hover: #D65A4A;
+  --verdigris:      #4F8A7C;
+  --parchment:      #B8A77A;
+  --persimmon:      #D4602A;
+  --slate-blue:     #7896B0;
+
+  --font-serif: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono:  'Geist Mono', 'JetBrains Mono', Menlo, monospace;
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+
+  --measure: 64ch;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--base);
+  color: var(--ivory);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.55;
+  font-feature-settings: 'zero', 'ss02';
+  -webkit-font-smoothing: antialiased;
+}
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'zero', 'tnum'; }
+.mono { font-family: var(--font-mono); }
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin: 0;
+}
+.kicker::before { content: '§  '; color: var(--parchment); font-weight: 500; letter-spacing: 0.1em; }
+
+.dim { color: var(--ivory-dim); }
+
+/* =====================================================================
+   HERO
+   ===================================================================== */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 32px;
+  padding: 48px 56px;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.hero-inner { display: flex; flex-direction: column; justify-content: space-between; max-width: 1100px; }
+.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 96px; }
+.hero-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+.hero-mark strong { color: var(--ivory); font-weight: 600; letter-spacing: 0.18em; }
+.hero-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+
+.hero-headline {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(40px, 6.6vw, 92px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--ivory);
+  margin: 0 0 28px;
+  max-width: 18ch;
+}
+.hero-headline em {
+  font-style: normal;
+  color: var(--cinnabar);
+  font-weight: 500;
+}
+
+.hero-subhead {
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ivory-dim);
+  max-width: 58ch;
+  margin: 0 0 40px;
+}
+.hero-subhead strong { color: var(--ivory); font-weight: 500; }
+
+.cta-row { display: flex; gap: 14px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 80ms var(--ease-out);
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--cinnabar);
+  color: var(--ivory);
+  border-color: var(--cinnabar);
+}
+.btn-primary:hover { background: var(--cinnabar-hover); border-color: var(--cinnabar-hover); }
+.btn-secondary {
+  background: transparent;
+  color: var(--ivory);
+  border-color: var(--rule-strong);
+}
+.btn-secondary:hover { border-color: var(--ivory-dim); background: var(--surface-alt); }
+.btn-arrow {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-left: 2px;
+}
+
+/* The faint clause gutter — decorative, evokes the numbered findings */
+.hero-gutter {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ivory-faint);
+  text-align: right;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-gutter span { display: block; }
+.hero-gutter span:last-child { color: var(--parchment); }
+
+/* =====================================================================
+   SECTION FRAME
+   ===================================================================== */
+section { padding: 96px 56px; border-bottom: 1px solid var(--rule); }
+section > .container { max-width: 1100px; margin: 0 auto; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 56px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+  box-shadow: 0 3px 0 0 var(--base), 0 4px 0 0 var(--rule-strong);
+}
+.section-head h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ivory);
+  margin: 0;
+  max-width: 18ch;
+}
+.section-head .kicker { align-self: flex-start; flex-shrink: 0; }
+
+/* =====================================================================
+   §1 — THE SEVEN CHECKS
+   ===================================================================== */
+.checks-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  counter-reset: check;
+  border-top: 1px solid var(--rule-strong);
+}
+.check {
+  counter-increment: check;
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr;
+  gap: 32px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.check-n {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--parchment);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.check-n::before { content: counter(check, decimal-leading-zero); }
+.check-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ivory);
+  line-height: 1.3;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.check-detail {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ivory-dim);
+  margin: 0;
+}
+.check-detail .stat {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--parchment);
+  letter-spacing: 0.02em;
+}
+
+/* =====================================================================
+   §2 — THE DELIVERABLE
+   ===================================================================== */
+.deliverable {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 64px;
+  align-items: center;
+}
+.deliverable-copy h3 {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ivory);
+  margin: 16px 0 22px;
+  max-width: 18ch;
+}
+.deliverable-copy p {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ivory-dim);
+  max-width: 50ch;
+  margin: 0 0 14px;
+}
+.deliverable-copy p strong { color: var(--ivory); font-weight: 500; }
+.deliverable-quote {
+  margin: 28px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--parchment);
+  line-height: 1.4;
+  max-width: 38ch;
+}
+
+/* SVG mock — angled PDF cover + interior page */
+.pdf-stage {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 32px;
+  overflow: hidden;
+}
+.pdf-stage svg { width: 100%; height: 100%; }
+
+/* =====================================================================
+   §3 — HOW IT WORKS
+   ===================================================================== */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.step {
+  background: var(--base);
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 280px;
+}
+.step-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  font-weight: 500;
+}
+.step-mark::before { content: '§  '; }
+.step h3 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ivory);
+  margin: 0;
+}
+.step p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ivory-dim);
+  margin: 0;
+  max-width: 36ch;
+}
+.step-time {
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+.step-time::before { content: '→  '; color: var(--cinnabar); }
+
+/* =====================================================================
+   CTA + FOOTER
+   ===================================================================== */
+.closer {
+  padding: 128px 56px;
+  text-align: center;
+  border-bottom: 1px solid var(--rule);
+}
+.closer-mark {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin: 0 0 24px;
+}
+.closer h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 4.2vw, 56px);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 auto 18px;
+  max-width: 20ch;
+  color: var(--ivory);
+}
+.closer p {
+  font-size: 16px;
+  color: var(--ivory-dim);
+  margin: 0 auto 36px;
+  max-width: 56ch;
+  line-height: 1.6;
+}
+.closer .cta-row { justify-content: center; }
+
+footer {
+  padding: 32px 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+footer a { color: var(--ivory-dim); text-decoration: none; transition: color 120ms var(--ease-out); }
+footer a:hover { color: var(--parchment); }
+.footer-mark { color: var(--parchment); font-size: 14px; letter-spacing: 0.1em; }
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+@media (max-width: 900px) {
+  .hero { padding: 32px 24px; grid-template-columns: 1fr; }
+  .hero-gutter { display: none; }
+  section { padding: 64px 24px; }
+  .check { grid-template-columns: 36px 1fr; gap: 18px; }
+  .check-detail { grid-column: 1 / -1; padding-left: 54px; margin-top: 4px; }
+  .deliverable { grid-template-columns: 1fr; gap: 36px; }
+  .steps { grid-template-columns: 1fr; }
+  .closer { padding: 80px 24px; }
+  footer { padding: 24px; flex-direction: column; gap: 16px; text-align: center; }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     HERO
+     ===================================================================== -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="hero-mark"><strong>OrgScan</strong> &nbsp;·&nbsp; Salesforce Org Audit</div>
+      <div class="hero-meta">Currently in Private Beta</div>
+    </div>
+
+    <div>
+      <p class="kicker" style="margin-bottom:28px">Findings, not vibes.</p>
+      <h1 class="hero-headline">Audit any Salesforce org in under <em>an hour.</em></h1>
+      <p class="hero-subhead">
+        OrgScan finds the <strong>dead users, undocumented flows, and hard-coded record IDs</strong>
+        your client doesn't know about — then writes the audit report you hand them at the end of the engagement.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/">Run a free scan <span class="btn-arrow">→</span></a>
+        <a class="btn btn-secondary" href="#deliverable">See a sample report</a>
+      </div>
+    </div>
+  </div>
+
+  <aside class="hero-gutter" aria-hidden="true">
+    <span class="num">01 · Inactive users</span>
+    <span class="num">02 · Flow API versions</span>
+    <span class="num">03 · Flow descriptions</span>
+    <span class="num">04 · Unused fields</span>
+    <span class="num">05 · Excessive permissions</span>
+    <span class="num">06 · Validation rules</span>
+    <span class="num">07 · Hard-coded IDs</span>
+  </aside>
+</section>
+
+<!-- =====================================================================
+     §1 — THE SEVEN CHECKS
+     ===================================================================== -->
+<section id="checks">
+  <div class="container">
+    <div class="section-head">
+      <p class="kicker">Section 01 · What it finds</p>
+      <h2>Seven checks. Every one of them concrete.</h2>
+    </div>
+
+    <ol class="checks-list">
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Dead licensed users</h3>
+        <p class="check-detail">Users who haven't logged in within the configured window — by username, license type, last-login date, and cost. <span class="stat">~23 in a typical 100-seat org.</span></p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Outdated flow API versions</h3>
+        <p class="check-detail">Every flow's API version surfaced and ranked against the platform's current minimum. <span class="stat">Each one is a future deployment risk.</span></p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Flows missing descriptions</h3>
+        <p class="check-detail">Then OrgScan reads the metadata and writes the description back to Salesforce for you, via Claude. <span class="stat">AI text written, not pasted.</span></p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Unused custom fields</h3>
+        <p class="check-detail">Custom fields with no formula references, no flow references, no report column hits, no API calls. <span class="stat">Deletable candidates, surfaced cleanly.</span></p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Excessive permissions</h3>
+        <p class="check-detail">Profiles and permission sets with <span class="stat">Modify All Data</span> or <span class="stat">View All Data</span> — the two grants that nobody should own without a reason.</p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Validation rules without descriptions</h3>
+        <p class="check-detail">Rules that block users with errors no admin can explain. <span class="stat">Every one a Slack ticket waiting to happen.</span></p>
+      </li>
+      <li class="check">
+        <span class="check-n"></span>
+        <h3 class="check-title">Hard-coded record IDs in flows</h3>
+        <p class="check-detail">Eighteen-character IDs sitting in formula nodes, decision conditions, and record creates. <span class="stat">Production-fragile by definition.</span></p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- =====================================================================
+     §2 — THE DELIVERABLE
+     ===================================================================== -->
+<section id="deliverable">
+  <div class="container">
+    <div class="section-head">
+      <p class="kicker">Section 02 · What you hand them</p>
+      <h2>The PDF is the deliverable.</h2>
+    </div>
+
+    <div class="deliverable">
+      <div class="deliverable-copy">
+        <p class="kicker">Client-ready, signed, defensible.</p>
+        <h3>You walk in with the audit. The client walks out with the report.</h3>
+        <p>Every finding is a numbered clause — <span class="mono">01</span>, <span class="mono">02</span>, <span class="mono">03</span> — with a record reference and a recommended action. The cover is your branding. The interior is the same forensic spec the app uses, ported to paper.</p>
+        <p>Geist on parchment. Cinnabar where things are broken, verdigris where they have aged well, parchment where the document has been stamped. <strong>Nothing in it could have been generated by ChatGPT.</strong></p>
+        <p class="deliverable-quote">"Findings, not vibes. The PDF is the deliverable."</p>
+      </div>
+
+      <div class="pdf-stage">
+        <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OrgScan audit report — cover and interior preview">
+          <!-- Interior page (behind, rotated slightly clockwise) -->
+          <g transform="translate(220 38) rotate(6)">
+            <rect width="240" height="320" fill="#F5EFE3" stroke="#A89A7D" stroke-width="0.6"/>
+            <!-- Header rule -->
+            <line x1="22" y1="48" x2="218" y2="48" stroke="#141312" stroke-width="0.6"/>
+            <line x1="22" y1="51" x2="218" y2="51" stroke="#A89A7D" stroke-width="0.6"/>
+            <!-- § + heading -->
+            <text x="22" y="42" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="11" font-weight="600">§</text>
+            <text x="34" y="42" fill="#141312" font-family="Geist, sans-serif" font-size="13" font-weight="500">Flows</text>
+            <text x="22" y="68" fill="#6C6254" font-family="Geist Mono, monospace" font-size="6.5" letter-spacing="1.4">12 FINDINGS IN THIS CATEGORY</text>
+            <!-- Finding 01 -->
+            <text x="22" y="90" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">01</text>
+            <rect x="40" y="82" width="42" height="11" fill="#F0DDD7" stroke="#B3402F" stroke-width="0.4" rx="1"/>
+            <text x="61" y="90" fill="#B3402F" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">CRITICAL</text>
+            <text x="88" y="90" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Hard-coded record ID in Lead_Routing_v3</text>
+            <text x="88" y="100" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">A 15-char Id sits in the assignment decision node.</text>
+            <text x="88" y="113" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="5.5" font-weight="600" letter-spacing="1.2">ACTION</text>
+            <text x="113" y="113" fill="#3D352D" font-family="Geist, sans-serif" font-size="6" font-style="italic">Replace with a custom-metadata lookup.</text>
+            <line x1="22" y1="124" x2="218" y2="124" stroke="#C9BFA9" stroke-width="0.4"/>
+            <!-- Finding 02 -->
+            <text x="22" y="142" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">02</text>
+            <rect x="40" y="134" width="44" height="11" fill="#F1DDCB" stroke="#B85020" stroke-width="0.4" rx="1"/>
+            <text x="62" y="142" fill="#B85020" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">WARNING</text>
+            <text x="90" y="142" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Flow API version 52.0 — below platform min</text>
+            <text x="90" y="152" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">Account_AssignTerritory was last updated 2024-08.</text>
+            <line x1="22" y1="164" x2="218" y2="164" stroke="#C9BFA9" stroke-width="0.4"/>
+            <!-- Finding 03 -->
+            <text x="22" y="182" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">03</text>
+            <rect x="40" y="174" width="32" height="11" fill="#D7E3DE" stroke="#3F7567" stroke-width="0.4" rx="1"/>
+            <text x="56" y="182" fill="#3F7567" font-family="Geist Mono, monospace" font-size="6" letter-spacing="0.9" text-anchor="middle" font-weight="500">PASS</text>
+            <text x="78" y="182" fill="#141312" font-family="Geist, sans-serif" font-size="8" font-weight="500">Description written for Lead_Assignment_v3</text>
+            <text x="78" y="192" fill="#141312" font-family="Geist, sans-serif" font-size="6.5">AI-generated, pushed to Salesforce 2026-05-12.</text>
+            <line x1="22" y1="204" x2="218" y2="204" stroke="#C9BFA9" stroke-width="0.4"/>
+            <!-- Filler lines -->
+            <text x="22" y="222" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">04</text>
+            <line x1="40" y1="220" x2="180" y2="220" stroke="#3D352D" stroke-width="0.3"/>
+            <line x1="40" y1="226" x2="200" y2="226" stroke="#A89A7D" stroke-width="0.3"/>
+            <text x="22" y="248" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="7.5" font-weight="700">05</text>
+            <line x1="40" y1="246" x2="170" y2="246" stroke="#3D352D" stroke-width="0.3"/>
+            <line x1="40" y1="252" x2="195" y2="252" stroke="#A89A7D" stroke-width="0.3"/>
+            <!-- Footer kicker -->
+            <text x="120" y="305" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5.5" letter-spacing="1.2" text-anchor="middle">ORGSCAN  ·  4 / 12</text>
+          </g>
+
+          <!-- Cover (in front, rotated slightly counter-clockwise) -->
+          <g transform="translate(40 60) rotate(-4)">
+            <rect width="240" height="320" fill="#F5EFE3" stroke="#3D352D" stroke-width="0.7"/>
+            <!-- Cover mark -->
+            <text x="22" y="56" fill="#8C7B4F" font-family="Geist Mono, monospace" font-size="6.5" letter-spacing="2">§  SALESFORCE  ORG  HEALTH  ASSESSMENT</text>
+            <!-- Title -->
+            <text x="22" y="148" fill="#141312" font-family="Geist, sans-serif" font-size="30" font-weight="500" letter-spacing="-0.8">Audit</text>
+            <text x="22" y="178" fill="#141312" font-family="Geist, sans-serif" font-size="30" font-weight="500" letter-spacing="-0.8">Report</text>
+            <!-- Client -->
+            <text x="22" y="210" fill="#141312" font-family="Geist, sans-serif" font-size="11" font-weight="500">Acme Corporation</text>
+            <!-- Double rule -->
+            <line x1="22" y1="248" x2="218" y2="248" stroke="#141312" stroke-width="0.5"/>
+            <line x1="22" y1="251" x2="218" y2="251" stroke="#A89A7D" stroke-width="0.5"/>
+            <!-- Meta -->
+            <text x="22" y="266" fill="#6C6254" font-family="Geist Mono, monospace" font-size="6" letter-spacing="1.4">MAY 2026  ·  PREPARED BY REGGIE BRYANT</text>
+            <!-- Footer score block -->
+            <rect x="22" y="284" width="44" height="22" fill="none" stroke="#C9BFA9" stroke-width="0.5"/>
+            <text x="29" y="298" fill="#B3402F" font-family="Geist, sans-serif" font-size="14" font-weight="500">07</text>
+            <text x="50" y="294" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5" letter-spacing="0.9">CRITICAL</text>
+            <text x="50" y="302" fill="#6C6254" font-family="Geist Mono, monospace" font-size="5" letter-spacing="0.9">FINDINGS</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     §3 — HOW IT WORKS
+     ===================================================================== -->
+<section id="how">
+  <div class="container">
+    <div class="section-head">
+      <p class="kicker">Section 03 · How it works</p>
+      <h2>Three steps. Under an hour.</h2>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-mark">Connect</div>
+        <h3>Authorize OrgScan against any Salesforce org.</h3>
+        <p>OAuth + refresh token. Sandbox or production — labelled clearly in the UI so you never write to the wrong one. Disconnect any time. We never store the org's data, only the connection.</p>
+        <p class="step-time">~2 minutes</p>
+      </div>
+      <div class="step">
+        <div class="step-mark">Scan</div>
+        <h3>Run the seven checks against the live metadata.</h3>
+        <p>Every finding lands with a record reference, a severity, and a one-click link back to the object in Salesforce. AI flow descriptions are written on demand and pushed back to the org as real metadata, not pasted text.</p>
+        <p class="step-time">~10 minutes</p>
+      </div>
+      <div class="step">
+        <div class="step-mark">Export</div>
+        <h3>Generate the client-ready PDF.</h3>
+        <p>The same Oxidized Plate spec as the app, ported to paper. Numbered clauses, mineral severities, action lines on every finding. Hand it to your client and let the document do the closing.</p>
+        <p class="step-time">~30 seconds</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     CLOSER
+     ===================================================================== -->
+<section class="closer">
+  <p class="closer-mark">§  Private Beta</p>
+  <h2>Audit your first org this week.</h2>
+  <p>OrgScan ships with <a href="https://www.inspiredideationstrategies.com" style="color:var(--parchment); text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px;">Inspired Ideation Strategies</a>. Currently invite-only while we tune the second wave of checks. Reach out and we'll get you set up against a sandbox in a single call.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="mailto:reggie@inspiredideationstrategies.com?subject=OrgScan%20%E2%80%94%20beta%20access">Request access <span class="btn-arrow">→</span></a>
+    <a class="btn btn-secondary" href="/">Try the app</a>
+  </div>
+</section>
+
+<!-- =====================================================================
+     FOOTER
+     ===================================================================== -->
+<footer>
+  <div>
+    <span class="footer-mark">§</span> &nbsp; OrgScan  ·  Built by Reggie Bryant
+  </div>
+  <div>
+    <a href="https://www.inspiredideationstrategies.com">Inspired Ideation Strategies</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:reggie@inspiredideationstrategies.com">reggie@inspiredideationstrategies.com</a>
+  </div>
+</footer>
+
+</body>
+</html>
