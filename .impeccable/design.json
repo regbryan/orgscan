@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-12T00:00:00Z",
+  "title": "Design System: OrgScan",
+  "extensions": {
+    "colorMeta": {
+      "carbon-black":     { "role": "neutral", "displayName": "Carbon Black",     "canonical": "#141312", "tonalRamp": ["#0c0b0a", "#141312", "#1c1a17", "#241f1a", "#2a241e", "#3d352d", "#6c6254", "#a89a7d"] },
+      "smoked-walnut":    { "role": "neutral", "displayName": "Smoked Walnut",    "canonical": "#1C1A17" },
+      "tarnished-bronze": { "role": "neutral", "displayName": "Tarnished Bronze", "canonical": "#241F1A" },
+      "weathered-copper": { "role": "neutral", "displayName": "Weathered Copper", "canonical": "#2A241E" },
+      "iron-filigree":    { "role": "neutral", "displayName": "Iron Filigree",    "canonical": "#2E2822" },
+      "patina-edge":      { "role": "neutral", "displayName": "Patina Edge",      "canonical": "#3D352D" },
+      "bone-ivory":       { "role": "neutral", "displayName": "Bone Ivory",       "canonical": "#E8DFC9" },
+      "faded-vellum":     { "role": "neutral", "displayName": "Faded Vellum",     "canonical": "#A89A7D" },
+      "aged-parchment":   { "role": "neutral", "displayName": "Aged Parchment",   "canonical": "#6C6254" },
+      "cinnabar":         { "role": "primary",   "displayName": "Cinnabar Red",    "canonical": "#C14A3D", "tonalRamp": ["#3d1812", "#5a2218", "#7a2e20", "#9c3a2c", "#C14A3D", "#D65A4A", "#e07b6e", "#ecaca3"] },
+      "cinnabar-hover":   { "role": "primary",   "displayName": "Cinnabar Hover",  "canonical": "#D65A4A" },
+      "verdigris":        { "role": "secondary", "displayName": "Verdigris",       "canonical": "#4F8A7C", "tonalRamp": ["#16302a", "#1f4339", "#2e5d50", "#3e7568", "#4F8A7C", "#5DA092", "#8cbeb3", "#bcdad2"] },
+      "verdigris-hover":  { "role": "secondary", "displayName": "Verdigris Hover", "canonical": "#5DA092" },
+      "parchment-gold":   { "role": "secondary", "displayName": "Parchment Gold",  "canonical": "#B8A77A" },
+      "persimmon":        { "role": "tertiary",  "displayName": "Persimmon",       "canonical": "#D4602A" },
+      "slate-blue":       { "role": "tertiary",  "displayName": "Slate Blue",      "canonical": "#7896B0" }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Page titles only (Findings, Org Health)." },
+      "headline": { "displayName": "Headline", "purpose": "Primary section headings." },
+      "title":    { "displayName": "Title",    "purpose": "Card titles and section titles (with § mark)." },
+      "body":     { "displayName": "Body",     "purpose": "Default prose, finding descriptions, table cells." },
+      "label":    { "displayName": "Label",    "purpose": "Mono small-caps kickers, table headers, metric labels, severity badges." }
+    },
+    "shadows": [
+      { "name": "hairline-edge", "value": "inset 0 0 0 1px var(--rule)", "purpose": "The only allowed shadow token — a 1px inset edge on selected surfaces. Never used for lift." },
+      { "name": "double-rule",   "value": "0 3px 0 0 var(--base), 0 4px 0 0 var(--rule-strong)", "purpose": "Editorial double-rule break under page headers. Reads as a print letterhead rule, not a shadow." }
+    ],
+    "motion": [
+      { "name": "ease-standard",   "value": "120ms ease",        "purpose": "Default transition for color, border-color, and background state changes." },
+      { "name": "ease-table-row",  "value": "100ms ease",        "purpose": "Table row hover background shift." }
+    ],
+    "breakpoints": [
+      { "name": "sidebar-collapse", "value": "900px", "purpose": "Below this width, the 232px sidebar collapses to a hamburger." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Cinnabar on ivory. The decisive or destructive action — Run Audit, Disconnect Org, Delete.",
+      "html": "<button class=\"ds-btn-primary\">RUN AUDIT</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#C14A3D;color:#E8DFC9;border:1px solid #C14A3D;border-radius:2px;padding:9px 16px;font-family:'Geist',Inter,system-ui,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.01em;line-height:1.2;cursor:pointer;transition:background 120ms ease,border-color 120ms ease}.ds-btn-primary:hover{background:#D65A4A;border-color:#D65A4A}.ds-btn-primary:focus-visible{outline:2px solid #C14A3D;outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Transparent with patina-edge border. The neutral action — Cancel, Back, View Details.",
+      "html": "<button class=\"ds-btn-secondary\">VIEW DETAILS</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:transparent;color:#E8DFC9;border:1px solid #3D352D;border-radius:2px;padding:9px 16px;font-family:'Geist',Inter,system-ui,sans-serif;font-size:13px;font-weight:500;letter-spacing:0.01em;cursor:pointer;transition:border-color 120ms ease,background 120ms ease}.ds-btn-secondary:hover{border-color:#A89A7D;background:#241F1A}.ds-btn-secondary:focus-visible{outline:2px solid #C14A3D;outline-offset:2px}"
+    },
+    {
+      "name": "Critical Badge",
+      "kind": "chip",
+      "refersTo": "badge-critical",
+      "description": "Severity pill with color-mix translucent fill — the substrate shows through. Cinnabar variant signals a critical finding.",
+      "html": "<span class=\"ds-badge-critical\">CRITICAL</span>",
+      "css": ".ds-badge-critical{display:inline-flex;align-items:center;font-family:'Geist Mono',Menlo,monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:color-mix(in srgb,#C14A3D 12%,#1C1A17);border:1px solid color-mix(in srgb,#C14A3D 40%,transparent);color:#C14A3D;line-height:1.3}"
+    },
+    {
+      "name": "Pass Badge",
+      "kind": "chip",
+      "refersTo": "badge-pass",
+      "description": "Quiet verdigris pass signal. No celebration — just the label.",
+      "html": "<span class=\"ds-badge-pass\">PASS</span>",
+      "css": ".ds-badge-pass{display:inline-flex;align-items:center;font-family:'Geist Mono',Menlo,monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:color-mix(in srgb,#4F8A7C 14%,#1C1A17);border:1px solid color-mix(in srgb,#4F8A7C 42%,transparent);color:#4F8A7C;line-height:1.3}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard surface container. Flat, hairline-bordered, with a tarnished-bronze header that announces the contents in serif.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Inactive Licensed Users</h3></div><div class=\"ds-card-body\">23 users have not logged in within 90 days.</div></div>",
+      "css": ".ds-card{background:#1C1A17;border:1px solid #2E2822;border-radius:2px;overflow:hidden;font-family:'Geist',Inter,system-ui,sans-serif;color:#E8DFC9}.ds-card-header{padding:16px 22px;border-bottom:1px solid #2E2822;background:#241F1A;display:flex;align-items:center;justify-content:space-between}.ds-card-title{font-size:15px;font-weight:500;margin:0;color:#E8DFC9}.ds-card-body{padding:20px 22px;font-size:14px;line-height:1.55}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Hairline-bordered input on smoked walnut. Focus replaces the border with cinnabar and adds an inset 1px cinnabar ring — no outer glow.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search findings…\">",
+      "css": ".ds-input{background:#1C1A17;border:1px solid #2E2822;color:#E8DFC9;border-radius:2px;padding:8px 11px;font-family:'Geist',Inter,system-ui,sans-serif;font-size:13px;line-height:1.4;transition:border-color 120ms ease,box-shadow 120ms ease;outline:none;width:100%;box-sizing:border-box}.ds-input::placeholder{color:#6C6254}.ds-input:focus{border-color:#C14A3D;box-shadow:inset 0 0 0 1px #C14A3D}"
+    },
+    {
+      "name": "Section Title",
+      "kind": "custom",
+      "refersTo": "section-title",
+      "description": "Signature element: a parchment § mark in mono followed by a Geist 500 title. The mark is the project's visual signature and appears nowhere else.",
+      "html": "<h2 class=\"ds-section-title\"><span class=\"ds-section-mark\">§</span>Findings by Category</h2>",
+      "css": ".ds-section-title{font-family:'Geist',Inter,system-ui,sans-serif;font-size:17px;font-weight:500;color:#E8DFC9;margin:0 0 12px;display:flex;align-items:baseline;gap:8px}.ds-section-mark{font-family:'Geist Mono',Menlo,monospace;font-weight:500;color:#B8A77A;font-size:14px;letter-spacing:0.1em}"
+    },
+    {
+      "name": "Numbered Finding Row",
+      "kind": "custom",
+      "refersTo": "table-row",
+      "description": "Signature element: findings are numbered like clauses in a legal document — leading-zero counters in parchment mono, absolutely positioned to the left of the first cell.",
+      "html": "<table class=\"ds-findings\"><tbody><tr><td><a class=\"ds-finding-link\" href=\"#\">Inactive licensed user: jdoe@example.com</a></td><td><span class=\"ds-badge-critical\">CRITICAL</span></td></tr><tr><td><a class=\"ds-finding-link\" href=\"#\">Flow missing description: Lead_Assignment_v3</a></td><td><span class=\"ds-badge-pass\">PASS</span></td></tr></tbody></table>",
+      "css": ".ds-findings{width:100%;border-collapse:collapse;counter-reset:finding;font-family:'Geist',Inter,system-ui,sans-serif;color:#E8DFC9;border-top:1px solid #3D352D;border-bottom:1px solid #3D352D}.ds-findings tbody tr{counter-increment:finding;border-bottom:1px solid #2E2822;transition:background 100ms ease}.ds-findings tbody tr:last-child{border-bottom:none}.ds-findings tbody tr:hover{background:#241F1A}.ds-findings tbody td{padding:14px;vertical-align:top;font-size:13px}.ds-findings tbody td:first-child{position:relative;padding-left:52px}.ds-findings tbody td:first-child::before{content:counter(finding,decimal-leading-zero);position:absolute;left:14px;top:14px;font-family:'Geist Mono',Menlo,monospace;font-size:12px;font-weight:700;color:#B8A77A;letter-spacing:0.04em;font-variant-numeric:tabular-nums}.ds-finding-link{color:#E8DFC9;font-weight:500;text-decoration:none;border-bottom:1px dashed #3D352D}.ds-finding-link:hover{color:#B8A77A;border-bottom-color:#B8A77A}.ds-badge-critical{display:inline-flex;font-family:'Geist Mono',Menlo,monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:color-mix(in srgb,#C14A3D 12%,#1C1A17);border:1px solid color-mix(in srgb,#C14A3D 40%,transparent);color:#C14A3D}.ds-badge-pass{display:inline-flex;font-family:'Geist Mono',Menlo,monospace;font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:color-mix(in srgb,#4F8A7C 14%,#1C1A17);border:1px solid color-mix(in srgb,#4F8A7C 42%,transparent);color:#4F8A7C}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Oxidized Plate",
+    "overview": "OrgScan is a forensic instrument rendered in oxidized metals and aged paper. The surface reads like a chemically-treated etching plate: warm near-black grounds, hairline iron rules, ivory text that suggests vellum more than screen. Color appears only where a chemical reaction would leave a mark — cinnabar where things are broken, verdigris where they have aged well, parchment where the document has been stamped. Nothing glows. Nothing floats. Everything has been touched by time and use.\n\nThe system explicitly rejects the entire vocabulary of contemporary SaaS: no gradient hero metrics, no glassmorphism, no neon-on-black, no celebratory empty states, no Salesforce-Lightning blue. It also rejects the opposite cliché — terminal-green hacker chic — because that's a costume, not a tool.",
+    "keyCharacteristics": [
+      "Warm near-black surfaces, hue-tinted toward bronze, never #000",
+      "Geist + Geist Mono pairing, with mono reserved for IDs / numbers / labels",
+      "Hairline (1px) rules carry every separation; no shadow on any element",
+      "Signal-only color: severity is the only reason a hue appears at saturation",
+      "Numbered findings, section marks (§), tabular figures, leading-zero counters",
+      "2px radii everywhere; corners are barely rounded, never pillowy"
+    ],
+    "rules": [
+      { "name": "The No-Pure-Black Rule", "body": "#000 and #fff are prohibited. Every neutral carries a measurable warm tint toward the bronze hue.", "section": "colors" },
+      { "name": "The Signal-Only Rule", "body": "Cinnabar, verdigris, persimmon, slate-blue, and parchment-gold are reserved. Each carries exactly one meaning across the entire app.", "section": "colors" },
+      { "name": "The Color-Mix Rule", "body": "Tinted backgrounds for badges are always color-mix(in srgb, var(--signal) 12-14%, var(--surface)), never opaque pastels. The substrate must show through.", "section": "colors" },
+      { "name": "The Mono-For-Identity Rule", "body": "Geist Mono is reserved for record IDs, API names, counts, severity badges, labels, kickers, table headers, and the § mark. Never used for body prose.", "section": "typography" },
+      { "name": "The Tabular-Figures Rule", "body": "Every number that appears in a count, score, percentage, or ID must use font-variant-numeric: tabular-nums and font-feature-settings: 'zero', 'tnum'.", "section": "typography" },
+      { "name": "The Section-Mark Rule", "body": "Section titles lead with a parchment-colored § in mono. The mark is the project's visual signature; it appears nowhere else.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces sit on the page. They do not float, lift, or hover. Any box-shadow value outside the allowed inset-1px hairline is prohibited.", "section": "elevation" },
+      { "name": "The No-Blur Rule", "body": "backdrop-filter, filter: blur(), and frosted-glass treatments are forbidden. The interface is etched, not photographed.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use cinnabar (#C14A3D) only where something is broken or destructive.",
+      "Do prepend the § mark to every section title.",
+      "Do use font-variant-numeric: tabular-nums on every count, score, percentage, and ID.",
+      "Do number findings rows with counter(finding, decimal-leading-zero).",
+      "Do convey severity with icon + label + color, in that order of reliability.",
+      "Do use 1px hairline rules and tonal lifts for separation.",
+      "Do reserve Geist Mono for IDs, numbers, kickers, labels, and the § mark.",
+      "Do honor prefers-reduced-motion — state-change motion collapses to instant or opacity-only fades.",
+      "Do keep buttons and cards at 2px radius."
+    ],
+    "donts": [
+      "Don't use #000 or #fff. Every neutral is hue-tinted toward bronze.",
+      "Don't introduce gradients, glow, drop-shadows, or backdrop-filter.",
+      "Don't ship Salesforce-Lightning blue or any cool-blue accent.",
+      "Don't use the gradient-hero-metric template.",
+      "Don't use celebratory empty states or 'great job!' copy.",
+      "Don't use color-only severity.",
+      "Don't use side-stripe borders except the active sidebar nav-item edge-stripe.",
+      "Don't use glassmorphism, frosted panels, neon-on-black, or any decorative accent that would not survive PDF export.",
+      "Don't name severities with emotional language ('urgent', 'attention needed').",
+      "Don't use Geist Mono for body prose.",
+      "Don't invent new accent colors."
+    ]
+  }
+}
